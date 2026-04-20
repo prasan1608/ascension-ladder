@@ -1,0 +1,2967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ascension Ladder</title>
+  <meta name="description" content="A hunter-style daily ascension system with ranks, missions, streaks, and special clears.">
+  <meta name="theme-color" content="#071126">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Ascension Ladder">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icon-apple.svg">
+  <style>
+    :root {
+      --bg: #040816;
+      --bg-soft: #0a1020;
+      --panel: rgba(8, 16, 36, 0.86);
+      --panel-strong: rgba(10, 18, 42, 0.96);
+      --panel-glass: rgba(12, 24, 54, 0.72);
+      --text: #e9f5ff;
+      --muted: #8ba5c7;
+      --line: rgba(110, 169, 255, 0.18);
+      --accent: #56d7ff;
+      --accent-strong: #00a8ff;
+      --violet: #7d6dff;
+      --cyan-soft: rgba(86, 215, 255, 0.14);
+      --success: #6cf2be;
+      --danger: #ff6f91;
+      --gold: #ffd36d;
+      --shadow: 0 26px 70px rgba(0, 0, 0, 0.52);
+      --glow: 0 0 0 1px rgba(86, 215, 255, 0.08), 0 0 30px rgba(0, 168, 255, 0.18);
+      --radius-xl: 30px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 20%, rgba(86, 215, 255, 0.16), transparent 20%),
+        radial-gradient(circle at 82% 18%, rgba(125, 109, 255, 0.14), transparent 26%),
+        radial-gradient(circle at 50% 120%, rgba(0, 168, 255, 0.18), transparent 28%),
+        linear-gradient(180deg, #02050d 0%, #060c1a 38%, #030713 100%);
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    body::before {
+      background:
+        linear-gradient(rgba(103, 174, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(103, 174, 255, 0.06) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: radial-gradient(circle at center, black 38%, transparent 90%);
+    }
+
+    body::after {
+      background: linear-gradient(180deg, rgba(86, 215, 255, 0.05), transparent 25%, transparent 75%, rgba(125, 109, 255, 0.05));
+      opacity: 0.65;
+    }
+
+    .shell {
+      width: min(1160px, calc(100% - 30px));
+      margin: 22px auto 34px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero {
+      padding: 30px 34px;
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(145deg, rgba(8, 16, 36, 0.96), rgba(11, 24, 53, 0.88)),
+        linear-gradient(90deg, rgba(86, 215, 255, 0.08), rgba(125, 109, 255, 0.08));
+      border: 1px solid rgba(111, 169, 255, 0.18);
+      box-shadow: var(--shadow), var(--glow);
+      overflow: hidden;
+      position: relative;
+      isolation: isolate;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(120deg, transparent 0%, rgba(86, 215, 255, 0.08) 45%, transparent 70%),
+        radial-gradient(circle at 88% 14%, rgba(86, 215, 255, 0.18), transparent 26%);
+      mix-blend-mode: screen;
+      z-index: -1;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 340px;
+      height: 340px;
+      right: -120px;
+      top: -130px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(86, 215, 255, 0.16), transparent 68%);
+      filter: blur(4px);
+      z-index: -1;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(86, 215, 255, 0.22);
+      background: rgba(86, 215, 255, 0.08);
+      color: #9eeaff;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      font-size: 11px;
+      box-shadow: inset 0 0 20px rgba(86, 215, 255, 0.08);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.45fr 0.85fr;
+      gap: 24px;
+      align-items: stretch;
+      margin-top: 0;
+    }
+
+    .hero-copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100%;
+      padding: 8px 0;
+    }
+
+    .hero-title-frame {
+      position: relative;
+      display: grid;
+      gap: 12px;
+      padding: 18px 0 14px 22px;
+    }
+
+    .hero-title-frame::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 10px;
+      bottom: 12px;
+      width: 3px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(86, 215, 255, 0.15), rgba(86, 215, 255, 0.95), rgba(125, 109, 255, 0.2));
+      box-shadow: 0 0 18px rgba(86, 215, 255, 0.24);
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2.6rem, 6vw, 5.2rem);
+      line-height: 0.88;
+      letter-spacing: -0.07em;
+      text-transform: uppercase;
+      max-width: 6ch;
+      text-shadow: 0 0 24px rgba(86, 215, 255, 0.16);
+    }
+
+    .hero-aside {
+      position: relative;
+      overflow: hidden;
+      border-radius: 26px;
+      padding: 22px;
+      background:
+        linear-gradient(165deg, rgba(6, 13, 30, 0.98), rgba(10, 29, 60, 0.9));
+      border: 1px solid rgba(86, 215, 255, 0.18);
+      box-shadow: inset 0 0 30px rgba(86, 215, 255, 0.06), 0 20px 50px rgba(0, 0, 0, 0.35);
+      min-height: 100%;
+      display: flex;
+      align-items: stretch;
+    }
+
+    .hero-aside::before {
+      content: "";
+      position: absolute;
+      inset: auto -10px -50px auto;
+      width: 210px;
+      height: 210px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(125, 109, 255, 0.24), transparent 68%);
+    }
+
+    .hero-aside h2 {
+      margin: 0 0 12px;
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: #86cff8;
+    }
+
+    .hunter-card {
+      margin-top: 0;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(86, 215, 255, 0.12);
+      display: grid;
+      gap: 8px;
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+      width: 100%;
+      align-content: start;
+    }
+
+    .hunter-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(86, 215, 255, 0.24);
+      background: rgba(86, 215, 255, 0.06);
+    }
+
+    .hunter-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #8abfe3;
+    }
+
+    .hunter-name {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #f4fbff;
+      letter-spacing: 0.01em;
+    }
+
+    .rank-display {
+      display: grid;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .rank-label {
+      font-size: 0.64rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #8abfe3;
+    }
+
+    .rank-primary {
+      color: var(--rank-color, #ffd783);
+      font-size: clamp(1.9rem, 5vw, 3rem);
+      font-weight: 800;
+      line-height: 0.9;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-shadow: 0 0 24px var(--rank-glow, rgba(255, 211, 109, 0.18));
+      white-space: nowrap;
+    }
+
+    .hunter-rank {
+      color: var(--rank-muted, var(--muted));
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hunter-meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .transfer-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .hunter-actions {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .level-display {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 2px 0 8px;
+    }
+
+    .level-number {
+      font-size: clamp(2.35rem, 5vw, 3.6rem);
+      font-weight: 800;
+      line-height: 0.9;
+      color: #dff7ff;
+      text-shadow: 0 0 24px rgba(86, 215, 255, 0.28);
+    }
+
+    .level-meta {
+      display: grid;
+      gap: 2px;
+      align-items: center;
+    }
+
+    .level-title {
+      color: #8ce6ff;
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 22px;
+      margin-top: 22px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(180deg, rgba(9, 18, 40, 0.96), rgba(7, 14, 32, 0.92));
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow), inset 0 0 0 1px rgba(255, 255, 255, 0.015);
+      backdrop-filter: blur(18px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(125deg, rgba(86, 215, 255, 0.05), transparent 28%, transparent 72%, rgba(125, 109, 255, 0.05));
+      pointer-events: none;
+    }
+
+    .panel h3 {
+      margin: 0 0 6px;
+      font-size: 1.18rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .heading-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-copy {
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stat-card {
+      min-height: 118px;
+      padding: 18px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(10, 28, 58, 0.78), rgba(7, 17, 38, 0.92));
+      border: 1px solid rgba(86, 215, 255, 0.12);
+      box-shadow: inset 0 0 26px rgba(86, 215, 255, 0.04);
+    }
+
+    .stat-label {
+      margin: 0;
+      font-size: 0.72rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #87bce4;
+    }
+
+    .stat-value {
+      margin: 14px 0 6px;
+      font-size: 2rem;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: #f3fbff;
+    }
+
+    .stat-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .progress-shell {
+      height: 14px;
+      margin-top: 14px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(86, 215, 255, 0.08);
+      position: relative;
+      z-index: 1;
+    }
+
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #3ed8ff 0%, #1ea7ff 45%, #7d6dff 100%);
+      box-shadow: 0 0 22px rgba(62, 216, 255, 0.42);
+      transition: width 220ms ease;
+    }
+
+    .tasks {
+      display: grid;
+      gap: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .task-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      padding: 18px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(10, 25, 54, 0.9), rgba(7, 15, 33, 0.98));
+      border: 1px solid rgba(86, 215, 255, 0.12);
+      box-shadow: inset 0 0 24px rgba(86, 215, 255, 0.03);
+      transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .task-card > :first-child {
+      min-width: 0;
+    }
+
+    .task-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(86, 215, 255, 0.34);
+      box-shadow: inset 0 0 24px rgba(86, 215, 255, 0.05), 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+
+    .task-card.mandatory-card {
+      border-color: rgba(255, 111, 145, 0.28);
+      box-shadow: inset 0 0 26px rgba(255, 111, 145, 0.08), 0 0 28px rgba(255, 111, 145, 0.08);
+      background: linear-gradient(180deg, rgba(34, 13, 28, 0.92), rgba(18, 10, 27, 0.98));
+    }
+
+    .task-card.special-card {
+      border-color: rgba(255, 211, 109, 0.42);
+      box-shadow:
+        inset 0 0 32px rgba(255, 211, 109, 0.12),
+        0 0 40px rgba(255, 211, 109, 0.14),
+        0 18px 42px rgba(0, 0, 0, 0.3);
+      background:
+        linear-gradient(180deg, rgba(54, 35, 14, 0.96), rgba(26, 17, 12, 0.98)),
+        radial-gradient(circle at top right, rgba(255, 211, 109, 0.16), transparent 36%);
+    }
+
+    .task-card.special-card:hover {
+      border-color: rgba(255, 222, 143, 0.62);
+      box-shadow:
+        inset 0 0 36px rgba(255, 211, 109, 0.16),
+        0 0 52px rgba(255, 211, 109, 0.22),
+        0 22px 48px rgba(0, 0, 0, 0.34);
+    }
+
+    .task-card.special-card .task-title strong {
+      color: #fff3cf;
+      text-shadow: 0 0 18px rgba(255, 211, 109, 0.12);
+    }
+
+    .task-card.special-card .task-rank {
+      min-width: 108px;
+      justify-content: center;
+      padding: 8px 14px;
+      background: linear-gradient(180deg, rgba(255, 211, 109, 0.16), rgba(255, 211, 109, 0.08));
+      border-color: rgba(255, 211, 109, 0.28);
+      color: #ffd86b;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      box-shadow: inset 0 0 18px rgba(255, 211, 109, 0.06);
+    }
+
+    .task-card.special-card .panel-copy {
+      color: #d7c7a2;
+    }
+
+    .task-card.special-card .info-button {
+      border-color: rgba(255, 211, 109, 0.28);
+      background: rgba(255, 211, 109, 0.1);
+      color: #ffe39c;
+    }
+
+    .task-card.special-card .info-button:hover {
+      background: rgba(255, 211, 109, 0.18);
+      border-color: rgba(255, 211, 109, 0.42);
+    }
+
+    .task-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.04rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      flex-wrap: wrap;
+    }
+
+    .task-title strong {
+      min-width: 0;
+    }
+
+    @media (min-width: 641px) {
+      .task-card.special-card .task-title {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        align-items: start;
+        column-gap: 14px;
+        row-gap: 0;
+      }
+
+      .task-card.special-card .task-title strong {
+        white-space: normal;
+        line-height: 1.15;
+        padding-right: 8px;
+      }
+
+      .task-card.special-card .task-rank,
+      .task-card.special-card .info-button {
+        flex: initial;
+        align-self: start;
+      }
+
+      .task-card.special-card .task-rank {
+        margin-left: 0;
+      }
+    }
+
+    .task-rank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(255, 211, 109, 0.12);
+      border: 1px solid rgba(255, 211, 109, 0.18);
+      color: var(--gold);
+      font-size: 0.68rem;
+      font-weight: 700;
+      line-height: 1;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      white-space: nowrap;
+    }
+
+    .task-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(86, 215, 255, 0.08);
+      border: 1px solid rgba(86, 215, 255, 0.1);
+      color: #8ec0e6;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .pill.positive {
+      background: rgba(108, 242, 190, 0.1);
+      border-color: rgba(108, 242, 190, 0.16);
+      color: var(--success);
+    }
+
+    .pill.locked {
+      background: rgba(255, 111, 145, 0.1);
+      border-color: rgba(255, 111, 145, 0.16);
+      color: var(--danger);
+    }
+
+    .pill.mandatory {
+      background: rgba(255, 111, 145, 0.14);
+      border-color: rgba(255, 111, 145, 0.24);
+      color: #ff93ae;
+    }
+
+    .pill.special {
+      background: rgba(255, 211, 109, 0.14);
+      border-color: rgba(255, 211, 109, 0.22);
+      color: #ffd985;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, #3ed8ff, #159cff);
+      color: #03101f;
+      box-shadow: 0 0 20px rgba(62, 216, 255, 0.28);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(90deg, #7ce8ff, #34afff);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(86, 215, 255, 0.12);
+      color: #b7d7f6;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(86, 215, 255, 0.1);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .goal-card {
+      background:
+        linear-gradient(180deg, rgba(7, 18, 41, 0.98), rgba(8, 16, 35, 0.96)),
+        radial-gradient(circle at top right, rgba(125, 109, 255, 0.14), transparent 30%);
+      color: var(--text);
+    }
+
+    .goal-card::after {
+      content: "";
+      position: absolute;
+      width: 230px;
+      height: 230px;
+      right: -80px;
+      top: -100px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(125, 109, 255, 0.22), transparent 70%);
+      pointer-events: none;
+    }
+
+    .goal-card .panel-copy,
+    .goal-card .stat-note,
+    .goal-card .stat-label {
+      color: #93a8cb;
+    }
+
+    .goal-summary {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .goal-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-top: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .mini-card {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(125, 109, 255, 0.12);
+    }
+
+    .activity-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .activity-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      padding: 15px 16px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(9, 24, 52, 0.88), rgba(7, 16, 35, 0.96));
+      border: 1px solid rgba(86, 215, 255, 0.1);
+    }
+
+    .activity-copy strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.95rem;
+      color: #ebf9ff;
+    }
+
+    .activity-copy span,
+    .activity-value {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .status-banner {
+      min-height: 54px;
+      margin-top: 16px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      border-radius: 16px;
+      background: rgba(86, 215, 255, 0.08);
+      color: #a7ebff;
+      border: 1px solid rgba(86, 215, 255, 0.14);
+      position: relative;
+      z-index: 1;
+    }
+
+    .status-banner.flash {
+      animation: bannerPulse 720ms ease;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .special-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .special-actions .btn-primary {
+      min-width: 210px;
+      max-width: 100%;
+      padding: 14px 22px;
+      font-size: 0.92rem;
+      letter-spacing: 0.1em;
+      box-shadow: 0 0 26px rgba(62, 216, 255, 0.32);
+    }
+
+    .task-card > .btn-primary,
+    .special-actions {
+      justify-self: end;
+    }
+
+    .task-card > .btn-primary {
+      min-width: 186px;
+      max-width: 100%;
+    }
+
+    .info-button {
+      width: 28px;
+      height: 28px;
+      border: 1px solid rgba(86, 215, 255, 0.18);
+      border-radius: 50%;
+      background: rgba(86, 215, 255, 0.08);
+      color: #98ebff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: inset 0 0 12px rgba(86, 215, 255, 0.06);
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .info-button:hover {
+      transform: translateY(-1px);
+      background: rgba(86, 215, 255, 0.14);
+      border-color: rgba(86, 215, 255, 0.3);
+    }
+
+    .system-overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(3, 8, 22, 0.62);
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms ease;
+      z-index: 30;
+    }
+
+    .system-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .system-card {
+      width: min(540px, 100%);
+      padding: 28px;
+      border-radius: 28px;
+      border: 1px solid rgba(86, 215, 255, 0.22);
+      background:
+        linear-gradient(180deg, rgba(9, 18, 41, 0.98), rgba(6, 14, 32, 0.98));
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.56), 0 0 40px rgba(86, 215, 255, 0.12);
+      text-align: center;
+      transform: scale(0.92) translateY(18px);
+      transition: transform 260ms ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .system-overlay.show .system-card {
+      transform: scale(1) translateY(0);
+    }
+
+    .system-card::before {
+      content: "";
+      position: absolute;
+      inset: -30% auto auto 50%;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(circle, rgba(86, 215, 255, 0.2), transparent 68%);
+      pointer-events: none;
+    }
+
+    .system-kicker {
+      margin: 0 0 10px;
+      font-size: 0.76rem;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: #8edff7;
+    }
+
+    .system-title {
+      margin: 0;
+      font-size: clamp(2rem, 6vw, 3.3rem);
+      line-height: 0.92;
+      letter-spacing: -0.06em;
+      text-transform: uppercase;
+      color: #f2fbff;
+      text-shadow: 0 0 24px rgba(86, 215, 255, 0.22);
+    }
+
+    .system-value {
+      margin: 12px 0 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #ffd783;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .system-detail {
+      margin: 12px auto 0;
+      max-width: 34ch;
+      color: var(--muted);
+      line-height: 1.6;
+      white-space: pre-line;
+      text-align: left;
+    }
+
+    .system-card.hunter-mode {
+      width: min(600px, 100%);
+      text-align: left;
+      border-color: rgba(125, 109, 255, 0.2);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.58), 0 0 50px rgba(125, 109, 255, 0.12);
+    }
+
+    .system-card.hunter-mode .system-title {
+      text-align: center;
+      font-size: clamp(2rem, 6vw, 3.4rem);
+    }
+
+    .system-card.hunter-mode .system-value,
+    .system-card.hunter-mode .system-kicker {
+      text-align: center;
+    }
+
+    .system-detail.html-mode {
+      max-width: 100%;
+      white-space: normal;
+      text-align: left;
+    }
+
+    .hunter-sheet {
+      margin-top: 10px;
+      display: grid;
+      gap: 7px;
+    }
+
+    .hunter-hero-row {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .hunter-level-seal {
+      border-radius: 26px;
+      padding: 14px 14px 12px;
+      background: linear-gradient(180deg, rgba(13, 34, 70, 0.96), rgba(8, 17, 38, 0.98));
+      border: 1px solid rgba(86, 215, 255, 0.14);
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      text-align: center;
+      box-shadow: inset 0 0 24px rgba(86, 215, 255, 0.05);
+    }
+
+    .hunter-level-number {
+      font-size: clamp(1.45rem, 3.5vw, 2rem);
+      line-height: 0.9;
+      font-weight: 800;
+      color: #ecfbff;
+      text-shadow: 0 0 24px rgba(86, 215, 255, 0.22);
+    }
+
+    .hunter-level-caption {
+      margin-top: 2px;
+      color: #8fe5ff;
+      font-size: 0.58rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .hunter-level-rank-label {
+      margin-top: 0;
+      color: rgba(143, 229, 255, 0.82);
+      font-size: 0.54rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+
+    .hunter-level-rank-value {
+      margin-top: 4px;
+      color: var(--rank-color, #ffd783);
+      font-size: clamp(1.6rem, 2.8vw, 2.1rem);
+      font-weight: 800;
+      line-height: 0.9;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      text-shadow: 0 0 24px var(--rank-glow, rgba(255, 211, 109, 0.22));
+      white-space: nowrap;
+      max-width: 100%;
+    }
+
+    .hunter-identity {
+      border-radius: 26px;
+      padding: 9px 11px;
+      background: linear-gradient(180deg, rgba(17, 24, 48, 0.96), rgba(9, 16, 35, 0.98));
+      border: 1px solid rgba(125, 109, 255, 0.14);
+      box-shadow: inset 0 0 28px rgba(125, 109, 255, 0.06);
+    }
+
+    .hunter-badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .hunter-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 11px;
+      border-radius: 999px;
+      background: rgba(86, 215, 255, 0.08);
+      border: 1px solid rgba(86, 215, 255, 0.1);
+      color: #9dd8f2;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hunter-progress {
+      margin-top: 7px;
+    }
+
+    .hunter-progress-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin-bottom: 3px;
+    }
+
+    .hunter-bar {
+      height: 9px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(86, 215, 255, 0.08);
+    }
+
+    .hunter-bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #67dfff 0%, #239fff 55%, #7d6dff 100%);
+      box-shadow: 0 0 24px rgba(86, 215, 255, 0.22);
+    }
+
+    .hunter-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .hunter-stat-box {
+      padding: 8px 10px 7px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(86, 215, 255, 0.1);
+      min-height: 88px;
+    }
+
+    .hunter-stat-box strong {
+      display: block;
+      color: #8fe5ff;
+      font-size: 0.64rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .hunter-stat-box span {
+      display: block;
+      color: #eef9ff;
+      font-size: 1.12rem;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      margin-bottom: 0;
+    }
+
+    .hunter-stat-box small {
+      display: none;
+    }
+
+    .hunter-actions {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 0;
+    }
+
+    .system-close {
+      margin-top: 22px;
+    }
+
+    .system-card.rank-up {
+      border-color: rgba(255, 211, 109, 0.34);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.58), 0 0 50px rgba(255, 211, 109, 0.16);
+    }
+
+    .system-card.rank-up .system-title,
+    .system-card.rank-up .system-value {
+      color: #ffe7a8;
+      text-shadow: 0 0 26px rgba(255, 211, 109, 0.28);
+    }
+
+    .xp-burst {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 28;
+      pointer-events: none;
+      display: grid;
+      gap: 10px;
+    }
+
+    .xp-burst-item {
+      min-width: 220px;
+      padding: 12px 18px;
+      border-radius: 16px;
+      background: rgba(8, 18, 40, 0.92);
+      border: 1px solid rgba(86, 215, 255, 0.18);
+      color: #dff7ff;
+      text-align: center;
+      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.38);
+      animation: burstFloat 1250ms ease forwards;
+    }
+
+    .xp-burst-item strong {
+      display: block;
+      font-size: 1.2rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #7be5ff;
+    }
+
+    .xp-burst-item span {
+      display: block;
+      margin-top: 4px;
+      color: #a6bddf;
+      font-size: 0.86rem;
+    }
+
+    @keyframes burstFloat {
+      0% {
+        opacity: 0;
+        transform: translateY(28px) scale(0.88);
+      }
+      18% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      76% {
+        opacity: 1;
+        transform: translateY(-18px) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-46px) scale(0.96);
+      }
+    }
+
+    @keyframes bannerPulse {
+      0% {
+        box-shadow: 0 0 0 rgba(86, 215, 255, 0);
+      }
+      35% {
+        box-shadow: 0 0 28px rgba(86, 215, 255, 0.22);
+      }
+      100% {
+        box-shadow: 0 0 0 rgba(86, 215, 255, 0);
+      }
+    }
+
+    .footer-note {
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.6;
+      position: relative;
+      z-index: 1;
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        width: min(100% - 20px, 100%);
+        margin: 14px auto 28px;
+      }
+
+      .hero,
+      .panel {
+        padding: 18px;
+      }
+
+      .stats-grid,
+      .mini-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .task-card,
+      .activity-item,
+      .goal-line,
+      .panel-head {
+        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: start;
+      }
+
+      .task-card {
+        gap: 14px;
+      }
+
+      .task-rank {
+        font-size: 0.62rem;
+        letter-spacing: 0.1em;
+      }
+
+      .task-card.special-card .task-rank {
+        min-width: 92px;
+        padding: 7px 11px;
+        font-size: 0.68rem;
+      }
+
+      .special-actions {
+        width: 100%;
+        justify-content: stretch;
+      }
+
+      .special-actions .btn-primary {
+        width: 100%;
+        min-width: 0;
+        padding: 14px 16px;
+        font-size: 0.9rem;
+      }
+
+      .system-card {
+        padding: 18px 14px;
+        border-radius: 20px;
+      }
+
+      .system-card.hunter-mode {
+        width: min(100%, 100%);
+      }
+
+      .system-card.hunter-mode .system-title {
+        font-size: clamp(1.6rem, 8vw, 2.35rem);
+      }
+
+      .hero-title-frame {
+        gap: 10px;
+        padding: 10px 0 8px 14px;
+      }
+
+
+      .system-value {
+        font-size: 0.92rem;
+        margin-top: 8px;
+      }
+
+      .hunter-sheet {
+        gap: 8px;
+      }
+
+      .hunter-hero-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .hunter-level-seal,
+      .hunter-identity {
+        border-radius: 18px;
+      }
+
+      .hunter-level-seal {
+        padding: 8px 9px;
+      }
+
+      .hunter-level-number {
+        font-size: 1.18rem;
+      }
+
+      .hunter-level-caption {
+        font-size: 0.52rem;
+        margin-top: 2px;
+      }
+
+      .hunter-level-rank-label {
+        margin-top: 0;
+        font-size: 0.44rem;
+      }
+
+      .hunter-level-rank-value {
+        margin-top: 3px;
+        font-size: 1.55rem;
+        letter-spacing: 0.1em;
+      }
+
+      .hunter-identity {
+        padding: 9px 10px;
+      }
+
+      .hunter-badge-row {
+        gap: 5px;
+      }
+
+      .hunter-badge {
+        font-size: 0.64rem;
+        padding: 5px 9px;
+      }
+
+      .hunter-progress-line {
+        font-size: 0.72rem;
+        margin-bottom: 3px;
+      }
+
+      .hunter-progress {
+        margin-top: 6px;
+      }
+
+      .hunter-bar {
+        height: 8px;
+      }
+
+      .hunter-stat-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+
+      .hunter-stat-box {
+        padding: 8px 8px 7px;
+        border-radius: 11px;
+        min-height: 0;
+      }
+
+      .hunter-stat-box strong {
+        font-size: 0.54rem;
+        letter-spacing: 0.1em;
+        margin-bottom: 4px;
+      }
+
+      .hunter-stat-box span {
+        font-size: 0.94rem;
+        margin-bottom: 0;
+      }
+
+      .hunter-stat-box small {
+        display: none;
+      }
+
+      .hunter-actions {
+        gap: 6px;
+      }
+
+      .hunter-actions .btn {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 11px 10px;
+      }
+
+      .hunter-card {
+        padding: 12px 13px;
+        gap: 7px;
+      }
+
+      .hunter-name {
+        font-size: 1.2rem;
+      }
+
+      .rank-display {
+        gap: 3px;
+      }
+
+      .rank-label {
+        font-size: 0.56rem;
+      }
+
+      .rank-primary {
+        font-size: 1.55rem;
+        letter-spacing: 0.06em;
+      }
+
+      .level-display {
+        gap: 10px;
+        margin: 0 0 6px;
+      }
+
+      .level-number {
+        font-size: 2rem;
+      }
+
+      .level-title {
+        font-size: 0.58rem;
+      }
+
+      .hunter-rank {
+        font-size: 0.68rem;
+      }
+
+      .system-close {
+        width: 100%;
+        margin-top: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <div class="hero-title-frame">
+            <h1>Ascension Ladder</h1>
+          </div>
+        </div>
+        <aside class="hero-aside">
+          <div class="hunter-card" id="hunterCard" role="button" tabindex="0">
+            <div class="hunter-label">Hunter Card</div>
+            <div class="hunter-name" id="hunterName">Hunter</div>
+            <div class="rank-display">
+              <div class="rank-label">Current Rank</div>
+              <div class="rank-primary" id="heroTitle">E-Rank</div>
+            </div>
+            <div class="level-display">
+              <div class="level-number" id="heroLevel">1</div>
+              <div class="level-meta">
+                <div class="level-title">Level</div>
+                <div class="hunter-rank" id="hunterRank">E-Rank Hunter</div>
+              </div>
+            </div>
+            <button class="btn btn-secondary" id="editHunterButton" type="button">Set Hunter Name</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <div class="layout">
+      <main class="stack">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="heading-line">
+                <h3>Status Window</h3>
+                <button class="info-button" id="statusInfoButton" type="button" aria-label="Status window info">i</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <article class="stat-card">
+              <p class="stat-label">Level</p>
+              <p class="stat-value" id="levelValue">1</p>
+              <p class="stat-note" id="levelTitle">E-Rank</p>
+            </article>
+            <article class="stat-card">
+              <p class="stat-label">System XP</p>
+              <p class="stat-value" id="xpValue">0</p>
+              <p class="stat-note" id="xpNote">0 XP to next rank</p>
+            </article>
+            <article class="stat-card">
+              <p class="stat-label">Streak Chain</p>
+              <p class="stat-value" id="streakValue">0</p>
+              <p class="stat-note">Momentum unlocks power</p>
+            </article>
+            <article class="stat-card">
+              <p class="stat-label">Peak Clear</p>
+              <p class="stat-value" id="bestDayValue">0</p>
+              <p class="stat-note">Most missions cleared in one day</p>
+            </article>
+          </div>
+
+          <div class="progress-shell">
+            <div class="progress-bar" id="xpProgressBar"></div>
+          </div>
+          <p class="footer-note" id="xpFootnote">0 / 120 XP toward the next rank.</p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="heading-line">
+                <h3>Daily Missions</h3>
+                <button class="info-button" id="dailyInfoButton" type="button" aria-label="Daily missions info">i</button>
+              </div>
+            </div>
+          </div>
+          <div class="tasks" id="tasks"></div>
+          <div class="status-banner" id="statusBanner">Clear your first mission to begin the streak chain.</div>
+        </section>
+      </main>
+
+      <aside class="stack">
+        <section class="panel goal-card">
+          <div class="panel-head">
+            <div>
+              <div class="heading-line">
+                <h3>Weekly Raid</h3>
+                <button class="info-button" id="raidInfoButton" type="button" aria-label="Weekly raid info">i</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="goal-summary">
+            <div class="goal-line">
+              <span id="goalLabel">Training raid</span>
+              <strong id="goalProgressText">0 / 5</strong>
+            </div>
+            <div class="progress-shell">
+              <div class="progress-bar" id="goalProgressBar"></div>
+            </div>
+            <div class="goal-line">
+              <span class="stat-note">Raid reward</span>
+              <strong id="goalRewardText">+100 XP</strong>
+            </div>
+          </div>
+
+          <div class="mini-grid">
+            <article class="mini-card">
+              <p class="stat-label">Raid Reset</p>
+              <p class="stat-value" id="weekStartValue">-</p>
+              <p class="stat-note">Automatic weekly reset</p>
+            </article>
+            <article class="mini-card">
+              <p class="stat-label">Body Clears</p>
+              <p class="stat-value" id="lifetimeWorkoutValue">0</p>
+              <p class="stat-note">Movement missions completed</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="heading-line">
+                <h3>Battle Log</h3>
+                <button class="info-button" id="logInfoButton" type="button" aria-label="Battle log info">i</button>
+              </div>
+            </div>
+          </div>
+          <ul class="activity-list" id="activityList"></ul>
+          <div class="actions">
+            <button class="btn btn-secondary" id="clearFeedButton" type="button">Clear Log</button>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <div class="xp-burst" id="xpBurst"></div>
+
+  <div class="system-overlay" id="systemOverlay" aria-hidden="true">
+    <div class="system-card" id="systemCard">
+      <p class="system-kicker" id="systemKicker">System Notice</p>
+      <h2 class="system-title" id="systemTitle">Mission Clear</h2>
+      <p class="system-value" id="systemValue">+0 XP</p>
+      <p class="system-detail" id="systemDetail">Your system has recorded the clear.</p>
+      <button class="btn btn-primary system-close" id="systemClose" type="button">Continue</button>
+    </div>
+  </div>
+
+  <input id="importFileInput" type="file" accept="application/json,.json" style="display:none">
+  <script>
+    const STORAGE_KEY = "level-up-life-state-v3";
+    const DIFFICULTY_MAP = {
+      common: { label: "Common", rank: "E-Rank", multiplier: 0.85, color: "common" },
+      standard: { label: "Standard", rank: "D-Rank", multiplier: 1, color: "standard" },
+      advanced: { label: "Advanced", rank: "C-Rank", multiplier: 1.28, color: "advanced" },
+      elite: { label: "Elite", rank: "B-Rank", multiplier: 1.62, color: "elite" },
+      boss: { label: "Boss", rank: "A-Rank", multiplier: 2.05, color: "boss" }
+    };
+
+    const DAILY_MISSION_POOL = [
+      {
+        baseId: "metro-walk",
+        name: "Metro March",
+        cadence: "Today",
+        type: "Body",
+        difficulty: "standard",
+        meaning: "Turn commute movement into a small physical win instead of dead travel time.",
+        objective: "Add a brisk walking block before, after, or between commute segments.",
+        details: "Minimum standard: 20 minutes of total brisk walking, stairs, or platform-to-office movement.",
+        rewardText: "Solid body XP because it fits a real office day without needing a gym slot.",
+        tags: ["commute", "office", "delhi", "weekly-body"]
+      },
+      {
+        baseId: "desk-reset",
+        name: "Desk Reset Mobility",
+        cadence: "Today",
+        type: "Health",
+        difficulty: "common",
+        meaning: "Protect your body from sitting fatigue during a long office shift.",
+        objective: "Do a short mobility reset during work hours.",
+        details: "Minimum standard: one 8 to 12 minute break for neck, shoulder, hip, and back mobility.",
+        rewardText: "Recovery XP because office stiffness silently drains your energy.",
+        tags: ["office", "health"]
+      },
+      {
+        baseId: "chai-control",
+        name: "Chai Discipline",
+        cadence: "Today",
+        type: "Discipline",
+        difficulty: "standard",
+        meaning: "Keep casual office snacking from hijacking your energy and focus.",
+        objective: "Take tea or coffee without turning it into a junk-food spiral.",
+        details: "Minimum standard: avoid biscuits, namkeen, sweets, or random stress snacking during one tea break.",
+        rewardText: "Discipline XP because small choices repeated daily build real control.",
+        tags: ["office", "food"]
+      },
+      {
+        baseId: "tiffin-upgrade",
+        name: "Tiffin Upgrade",
+        cadence: "Today",
+        type: "Health",
+        difficulty: "standard",
+        meaning: "Use lunch as support fuel instead of a mid-day crash trigger.",
+        objective: "Eat a cleaner office lunch than your default impulse choice.",
+        details: "Minimum standard: a lunch with proper protein, water, and less fried or heavy food than usual.",
+        rewardText: "Health XP because stable energy makes the rest of the shift easier.",
+        tags: ["office", "food"]
+      },
+      {
+        baseId: "focus-sprint",
+        name: "Inbox Shutdown Sprint",
+        cadence: "Today",
+        type: "Mind",
+        difficulty: "advanced",
+        meaning: "Push through a meaningful work block without letting notifications fragment your mind.",
+        objective: "Finish one focused work sprint with all distractions closed.",
+        details: "Minimum standard: 45 minutes of single-task work with phone away and non-essential tabs closed.",
+        rewardText: "High mind XP because real output beats reactive busyness.",
+        tags: ["office", "focus"]
+      },
+      {
+        baseId: "whatsapp-fence",
+        name: "WhatsApp Fence",
+        cadence: "Today",
+        type: "Discipline",
+        difficulty: "advanced",
+        meaning: "Stop chat apps from breaking your attention every few minutes.",
+        objective: "Keep WhatsApp and casual messaging checked only at intentional times.",
+        details: "Minimum standard: no impulse checking for one continuous 60 minute work block.",
+        rewardText: "Discipline XP because notification control is modern self-control.",
+        tags: ["office", "focus"]
+      },
+      {
+        baseId: "sunrise-water",
+        name: "Morning Water Start",
+        cadence: "Today",
+        type: "Health",
+        difficulty: "common",
+        meaning: "Start the day like someone who is managing energy on purpose.",
+        objective: "Begin your morning with water before caffeine or chaos takes over.",
+        details: "Minimum standard: 500 ml water within the first part of your morning routine.",
+        rewardText: "Easy but important health XP because small starts shape the day.",
+        tags: ["morning", "health"]
+      },
+      {
+        baseId: "early-rise",
+        name: "Early Exit From Bed",
+        cadence: "Today",
+        type: "Discipline",
+        difficulty: "advanced",
+        meaning: "Win the first battle of the day by getting up without excessive snoozing.",
+        objective: "Get out of bed on time and avoid dragging the morning.",
+        details: "Minimum standard: no more than one snooze cycle and no lying in bed scrolling.",
+        rewardText: "Morning discipline XP because clean starts create cleaner days.",
+        tags: ["morning", "discipline"]
+      },
+      {
+        baseId: "night-cutoff",
+        name: "Night Screen Cutoff",
+        cadence: "Today",
+        type: "Focus",
+        difficulty: "advanced",
+        meaning: "Protect sleep quality so tomorrow does not begin half-drained.",
+        objective: "Create a clean digital cutoff before sleeping.",
+        details: "Minimum standard: no reels, shorts, or random browsing for the last 45 minutes before sleep.",
+        rewardText: "Strong recovery XP because sleep decides tomorrow's quality.",
+        tags: ["night", "recovery"]
+      },
+      {
+        baseId: "family-presence",
+        name: "Family Presence Window",
+        cadence: "Today",
+        type: "Focus",
+        difficulty: "standard",
+        meaning: "Be mentally present at home instead of physically present but digitally absent.",
+        objective: "Give one uninterrupted block of attention to family or close people.",
+        details: "Minimum standard: 20 to 30 minutes without phone distraction while talking, eating, or sitting together.",
+        rewardText: "Focus XP because presence is a real form of discipline.",
+        tags: ["home", "night"]
+      },
+      {
+        baseId: "reading-commute",
+        name: "Commute Knowledge Pocket",
+        cadence: "Today",
+        type: "Mind",
+        difficulty: "standard",
+        meaning: "Turn waiting or commute time into useful learning.",
+        objective: "Use part of commute or queue time for reading or listening to something valuable.",
+        details: "Minimum standard: 15 to 20 minutes of reading, audiobook, podcast, or notes review with intention.",
+        rewardText: "Mind XP because small learning pockets compound quietly.",
+        tags: ["commute", "mind"]
+      },
+      {
+        baseId: "bodyweight-home",
+        name: "Home Strength Circuit",
+        cadence: "Today",
+        type: "Body",
+        difficulty: "advanced",
+        meaning: "Keep fitness alive even on days when office timing kills gym plans.",
+        objective: "Finish a short but real bodyweight workout after work or before office.",
+        details: "Minimum standard: 15 to 25 minutes of push-ups, squats, planks, lunges, or similar work.",
+        rewardText: "Strong body XP because consistency matters more than perfect setup.",
+        tags: ["body", "home", "weekly-body"]
+      },
+      {
+        baseId: "gym-visit",
+        name: "Post-Shift Gym Visit",
+        cadence: "Today",
+        type: "Body",
+        difficulty: "elite",
+        meaning: "Show up for hard training even after a full office day.",
+        objective: "Complete a full gym or structured workout session after work.",
+        details: "Minimum standard: 35+ minutes of actual training, not just showing up.",
+        rewardText: "Elite body XP because effort after a long workday is harder and more valuable.",
+        tags: ["body", "gym", "weekly-body"]
+      },
+      {
+        baseId: "expense-check",
+        name: "Wallet Control Check",
+        cadence: "Today",
+        type: "Discipline",
+        difficulty: "common",
+        meaning: "Stay in control of small spending instead of leaking money unconsciously.",
+        objective: "Review or limit one avoidable daily expense.",
+        details: "Minimum standard: skip one unnecessary order, snack, cab convenience, or impulse purchase.",
+        rewardText: "Discipline XP because practical control includes money habits too.",
+        tags: ["office", "money"]
+      },
+      {
+        baseId: "breath-break",
+        name: "Two-Minute System Reset",
+        cadence: "Today",
+        type: "Focus",
+        difficulty: "common",
+        meaning: "Use a short reset to stop stress from silently building during the workday.",
+        objective: "Do one deliberate pause with slow breathing and no screens.",
+        details: "Minimum standard: 2 to 5 minutes of slow breathing, eyes away from display, posture reset, and calm attention.",
+        rewardText: "Focus XP because mental resets preserve decision quality.",
+        tags: ["office", "stress"]
+      }
+    ];
+
+    const SPECIAL_MISSION_POOL = [
+      {
+        name: "Cold Start Sprint",
+        type: "Body",
+        theme: "Start the day with hard momentum.",
+        meaning: "This mission is about attacking inertia before it controls the day.",
+        objective: "Do something physically demanding early instead of waiting for motivation.",
+        details: "Examples: fast walk, sprint intervals, push-up circuit, mobility flow, or short gym opener in the first active part of your day.",
+        rewardText: "Special XP bonus because fast momentum often changes the entire day."
+      },
+      {
+        name: "Deep Work Lock-In",
+        type: "Mind",
+        theme: "One focused block with zero distraction.",
+        meaning: "This mission rewards uninterrupted cognitive work on something meaningful.",
+        objective: "Complete one deep work block where notifications and distractions are fully closed.",
+        details: "Minimum standard: 45 to 90 minutes on one important task, with no random app switching.",
+        rewardText: "Special XP bonus because focused output compounds faster than casual busywork."
+      },
+      {
+        name: "Digital Exile",
+        type: "Discipline",
+        theme: "Extended no-scroll window for clean focus.",
+        meaning: "This mission helps you reclaim your nervous system from cheap stimulation.",
+        objective: "Stay away from entertainment scrolling for a long enough block to reset attention.",
+        details: "Minimum standard: 3+ hours with no recreational social scrolling, reels, shorts, or doomscrolling.",
+        rewardText: "Special XP bonus because discipline under temptation is rare and powerful."
+      },
+      {
+        name: "Recovery Protocol",
+        type: "Health",
+        theme: "Mobility, hydration, and proper refuel.",
+        meaning: "This mission is about restoring your system so tomorrow stays strong.",
+        objective: "Deliberately recover instead of just collapsing at the end of the day.",
+        details: "Combine hydration, stretching, walking, sleep preparation, or a high-quality meal as a full recovery block.",
+        rewardText: "Special XP bonus because recovery protects long-term consistency."
+      },
+      {
+        name: "Silence Chamber",
+        type: "Focus",
+        theme: "Meditation or silent reflection beyond the normal session.",
+        meaning: "This mission deepens control over thought, emotion, and internal noise.",
+        objective: "Spend a longer-than-usual session in silence without digital interruption.",
+        details: "Minimum standard: 20+ minutes of stillness, journaling, prayer, reflection, or deliberate mental reset.",
+        rewardText: "Special XP bonus because mental stillness makes execution cleaner."
+      },
+      {
+        name: "Late-Night Clean Exit",
+        type: "Discipline",
+        theme: "Close the day without doomscrolling.",
+        meaning: "This mission protects sleep quality and prevents the end of the day from collapsing into noise.",
+        objective: "Shut down the night with intention instead of losing the final hour online.",
+        details: "Minimum standard: last 45 minutes before sleep with no reels, random browsing, or reactive app use.",
+        rewardText: "Special XP bonus because endings influence recovery and the next morning."
+      },
+      {
+        name: "Knowledge Extraction",
+        type: "Mind",
+        theme: "Long-form reading plus notes or summary.",
+        meaning: "This mission is about active learning, not passive consumption.",
+        objective: "Study something valuable and prove retention with notes, highlights, or a summary.",
+        details: "Minimum standard: 30+ minutes of reading or learning plus a written takeaway, summary, or action point.",
+        rewardText: "Special XP bonus because applied learning is more valuable than raw consumption."
+      }
+    ];
+
+    const defaultState = {
+      xp: 0,
+      level: 1,
+      streak: 0,
+      lastCompletionDate: null,
+      completedToday: {},
+      bestDay: 0,
+      history: [],
+      lifetimeStats: {},
+      dailyRecords: {},
+      dailyTaskHistory: {},
+      lastPenaltyCheck: null,
+      pendingStatus: "",
+      hunter: {
+        name: "Hunter",
+        city: "Delhi",
+        shift: "10 AM to 7 PM",
+        hasCustomName: false,
+        rankRenameUsed: false
+      },
+      dailyMissions: [],
+      mandatoryMissionIds: [],
+      specialMission: null,
+      weeklyGoal: {
+        targetTag: "weekly-body",
+        target: 5,
+        progress: 0,
+        reward: 100,
+        weekStart: null
+      }
+    };
+
+    const state = loadState();
+    normalizeState(state);
+    applyDayRules();
+    render();
+
+    document.getElementById("clearFeedButton").addEventListener("click", clearFeed);
+    document.getElementById("editHunterButton").addEventListener("click", editHunterName);
+    document.getElementById("importFileInput").addEventListener("change", importData);
+    document.getElementById("statusInfoButton").addEventListener("click", function () {
+      openSectionInfo("Status Window", "Every cleared mission adds experience, strengthens your streak, and pushes you toward the next hunter rank.");
+    });
+    document.getElementById("dailyInfoButton").addEventListener("click", function () {
+      openSectionInfo("Daily Missions", "Mission XP is calculated automatically from difficulty. Each day also spawns one special mission and two mandatory missions with harsher failure penalties.");
+    });
+    document.getElementById("raidInfoButton").addEventListener("click", function () {
+      openSectionInfo("Weekly Raid", "Tie your core training habit to a raid reward so consistency feels like a boss mechanic.");
+    });
+    document.getElementById("logInfoButton").addEventListener("click", function () {
+      openSectionInfo("Battle Log", "A running event feed makes your progress feel like an active system window rather than a static checklist.");
+    });
+    document.getElementById("hunterCard").addEventListener("click", openHunterCard);
+    document.getElementById("hunterCard").addEventListener("keydown", function (event) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openHunterCard();
+      }
+    });
+    document.getElementById("systemClose").addEventListener("click", hideSystemPopup);
+    document.getElementById("systemOverlay").addEventListener("click", function (event) {
+      if (event.target.id === "systemOverlay") {
+        hideSystemPopup();
+      }
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape") {
+        return;
+      }
+      const overlay = document.getElementById("systemOverlay");
+      if (overlay.classList.contains("show")) {
+        hideSystemPopup();
+      }
+    });
+    registerAppShell();
+
+    function cloneDefaultState() {
+      return JSON.parse(JSON.stringify(defaultState));
+    }
+
+    function registerAppShell() {
+      if (!("serviceWorker" in navigator) || location.protocol === "file:") {
+        return;
+      }
+
+      navigator.serviceWorker.register("./service-worker.js").catch(function () {
+      });
+    }
+
+    function loadState() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || cloneDefaultState();
+      } catch (error) {
+        return cloneDefaultState();
+      }
+    }
+
+    function normalizeState(data) {
+      data.xp = Number.isFinite(data.xp) ? data.xp : 0;
+      data.level = Number.isFinite(data.level) && data.level > 0 ? data.level : 1;
+      data.streak = Number.isFinite(data.streak) && data.streak >= 0 ? data.streak : 0;
+      data.completedToday = data.completedToday || {};
+      data.history = Array.isArray(data.history) ? data.history.slice(0, 20) : [];
+      data.lifetimeStats = data.lifetimeStats || {};
+      data.dailyRecords = data.dailyRecords || {};
+      data.dailyTaskHistory = data.dailyTaskHistory || {};
+      data.lastPenaltyCheck = data.lastPenaltyCheck || null;
+      data.pendingStatus = typeof data.pendingStatus === "string" ? data.pendingStatus : "";
+      data.hunter = data.hunter || cloneDefaultState().hunter;
+      data.hunter.name = data.hunter.name || "Hunter";
+      data.hunter.city = data.hunter.city || "Delhi";
+      data.hunter.shift = data.hunter.shift || "10 AM to 7 PM";
+      data.hunter.hasCustomName = Boolean(data.hunter.hasCustomName) || (data.hunter.name && data.hunter.name !== "Hunter");
+      data.hunter.rankRenameUsed = Boolean(data.hunter.rankRenameUsed);
+      data.dailyMissions = Array.isArray(data.dailyMissions) ? data.dailyMissions : [];
+      data.mandatoryMissionIds = Array.isArray(data.mandatoryMissionIds) ? data.mandatoryMissionIds : [];
+      data.specialMission = data.specialMission || null;
+      data.weeklyGoal = data.weeklyGoal || cloneDefaultState().weeklyGoal;
+      data.weeklyGoal.targetTag = data.weeklyGoal.targetTag || "weekly-body";
+      data.weeklyGoal.target = Number.isFinite(data.weeklyGoal.target) ? data.weeklyGoal.target : 5;
+      data.weeklyGoal.progress = Number.isFinite(data.weeklyGoal.progress) ? data.weeklyGoal.progress : 0;
+      data.weeklyGoal.weekStart = data.weeklyGoal.weekStart || startOfWeekKey(new Date());
+      data.weeklyGoal.reward = computeWeeklyGoalReward();
+      data.bestDay = Number.isFinite(data.bestDay) ? data.bestDay : 0;
+      saveState();
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function exportData() {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        app: "Level Up Life",
+        version: 3,
+        state: JSON.parse(JSON.stringify(state))
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "level-up-life-backup.json";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setStatus("Backup exported successfully.");
+    }
+
+    function importData(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) {
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (loadEvent) {
+        try {
+          const parsed = JSON.parse(loadEvent.target.result);
+          const importedState = parsed && parsed.state ? parsed.state : parsed;
+          Object.assign(state, cloneDefaultState(), importedState);
+          normalizeState(state);
+          applyDayRules();
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          render();
+          setStatus("Backup imported for " + state.hunter.name + ".");
+        } catch (error) {
+          setStatus("Import failed. Use a valid backup JSON file.");
+        } finally {
+          event.target.value = "";
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function getTodayKey() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      return year + "-" + month + "-" + day;
+    }
+
+    function startOfWeekKey(date) {
+      const base = new Date(date);
+      const day = base.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      base.setHours(0, 0, 0, 0);
+      base.setDate(base.getDate() + diff);
+      const year = base.getFullYear();
+      const month = String(base.getMonth() + 1).padStart(2, "0");
+      const dayOfMonth = String(base.getDate()).padStart(2, "0");
+      return year + "-" + month + "-" + dayOfMonth;
+    }
+
+    function formatShortDate(dateKey) {
+      const date = new Date(dateKey + "T00:00:00");
+      return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    }
+
+    function shiftDateKey(dateKey, amount) {
+      const date = new Date(dateKey + "T00:00:00");
+      date.setDate(date.getDate() + amount);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return year + "-" + month + "-" + day;
+    }
+
+    function hashString(input) {
+      let hash = 0;
+      for (let index = 0; index < input.length; index += 1) {
+        hash = (hash * 31 + input.charCodeAt(index)) >>> 0;
+      }
+      return hash;
+    }
+
+    function getDifficultyMeta(key) {
+      return DIFFICULTY_MAP[key] || DIFFICULTY_MAP.standard;
+    }
+
+    function xpForDifficulty(difficultyKey, options) {
+      const meta = getDifficultyMeta(difficultyKey);
+      const levelFactor = Math.floor((state.level - 1) * 2.4);
+      const streakFactor = Math.min(12, state.streak * 2);
+      const specialBonus = options && options.special ? 18 : 0;
+      const base = 18 + levelFactor;
+      return Math.round(base * meta.multiplier + streakFactor + specialBonus);
+    }
+
+    function computeWeeklyGoalReward() {
+      const bodyMissions = DAILY_MISSION_POOL.filter(function (task) {
+        return Array.isArray(task.tags) && task.tags.indexOf("weekly-body") !== -1;
+      });
+      const averageBodyXp = bodyMissions.length
+        ? Math.round(bodyMissions.reduce(function (sum, task) {
+            return sum + xpForDifficulty(task.difficulty);
+          }, 0) / bodyMissions.length)
+        : xpForDifficulty("advanced");
+      return averageBodyXp * 4;
+    }
+
+    function getLifetimeBodyClears() {
+      const bodyBaseIds = DAILY_MISSION_POOL.filter(function (task) {
+        return Array.isArray(task.tags) && task.tags.indexOf("weekly-body") !== -1;
+      }).map(function (task) {
+        return task.baseId;
+      });
+
+      return Object.keys(state.lifetimeStats).reduce(function (total, key) {
+        const matches = bodyBaseIds.some(function (baseId) {
+          return key.indexOf(baseId + "-") === 0;
+        });
+        return total + (matches ? state.lifetimeStats[key] : 0);
+      }, 0);
+    }
+
+    function buildMissionFromPool(template, dateKey) {
+      return {
+        id: template.baseId + "-" + dateKey,
+        baseId: template.baseId,
+        date: dateKey,
+        name: template.name,
+        cadence: template.cadence,
+        type: template.type,
+        difficulty: template.difficulty,
+        meaning: template.meaning,
+        objective: template.objective,
+        details: template.details,
+        rewardText: template.rewardText,
+        tags: template.tags || []
+      };
+    }
+
+    function generateDailyMissionSet(dateKey) {
+      const pool = DAILY_MISSION_POOL.slice();
+      const scored = pool.map(function (mission, index) {
+        return {
+          mission: mission,
+          score: hashString(dateKey + "-" + mission.baseId + "-" + String(index))
+        };
+      }).sort(function (left, right) {
+        return left.score - right.score;
+      });
+
+      const selected = [];
+      const requiredGroups = ["morning", "office", "night"];
+
+      requiredGroups.forEach(function (group) {
+        const match = scored.find(function (entry) {
+          return Array.isArray(entry.mission.tags) && entry.mission.tags.indexOf(group) !== -1 &&
+            !selected.some(function (picked) { return picked.baseId === entry.mission.baseId; });
+        });
+        if (match) {
+          selected.push(match.mission);
+        }
+      });
+
+      scored.forEach(function (entry) {
+        if (selected.length >= 5) {
+          return;
+        }
+        if (!selected.some(function (picked) { return picked.baseId === entry.mission.baseId; })) {
+          selected.push(entry.mission);
+        }
+      });
+
+      return selected.slice(0, 5).map(function (mission) {
+        return buildMissionFromPool(mission, dateKey);
+      });
+    }
+
+    function pickMandatoryMissionIds(missions, dateKey) {
+      const ranked = missions.slice().map(function (mission, index) {
+        return {
+          id: mission.id,
+          score: hashString(dateKey + "-mandatory-" + mission.baseId + "-" + String(index))
+        };
+      }).sort(function (left, right) {
+        return left.score - right.score;
+      });
+
+      return ranked.slice(0, 2).map(function (entry) {
+        return entry.id;
+      });
+    }
+
+    function generateDailySpecialMission(dateKey) {
+      const hash = hashString(dateKey);
+      const template = SPECIAL_MISSION_POOL[hash % SPECIAL_MISSION_POOL.length];
+      const difficultyKeys = Object.keys(DIFFICULTY_MAP);
+      const shiftedDifficulty = difficultyKeys[(hash + template.name.length) % difficultyKeys.length];
+      return {
+        id: "special-" + dateKey,
+        date: dateKey,
+        name: template.name,
+        type: template.type,
+        cadence: "Daily Special",
+        difficulty: shiftedDifficulty,
+        theme: template.theme,
+        meaning: template.meaning,
+        objective: template.objective,
+        details: template.details,
+        rewardText: template.rewardText
+      };
+    }
+
+    function getSpecialMissionTemplateByName(name) {
+      return SPECIAL_MISSION_POOL.find(function (mission) {
+        return mission.name === name;
+      }) || null;
+    }
+
+    function getTaskTemplateById(id) {
+      return DAILY_MISSION_POOL.find(function (task) {
+        return task.baseId === id || task.baseId === String(id || "").replace(/-\d{4}-\d{2}-\d{2}$/, "");
+      }) || null;
+    }
+
+    function hydrateSpecialMission(mission) {
+      if (!mission || !mission.date) {
+        return mission;
+      }
+
+      const dateMission = generateDailySpecialMission(mission.date);
+      const templateMatch = getSpecialMissionTemplateByName(mission.name);
+      const source = templateMatch || dateMission;
+
+      return Object.assign({}, dateMission, mission, {
+        name: mission.name || source.name || dateMission.name,
+        type: mission.type || source.type || dateMission.type,
+        cadence: mission.cadence || source.cadence || dateMission.cadence,
+        difficulty: mission.difficulty || dateMission.difficulty,
+        theme: source.theme || dateMission.theme,
+        meaning: source.meaning || dateMission.meaning,
+        objective: source.objective || dateMission.objective,
+        details: source.details || dateMission.details,
+        rewardText: source.rewardText || dateMission.rewardText
+      });
+    }
+
+    function evaluatePenaltyForPreviousDay(today) {
+      if (state.lastPenaltyCheck === today) {
+        return;
+      }
+
+      const yesterday = shiftDateKey(today, -1);
+      if (!state.lastCompletionDate && !state.dailyRecords[yesterday]) {
+        state.lastPenaltyCheck = today;
+        return;
+      }
+
+      const clears = Number(state.dailyRecords[yesterday] || 0);
+      const previousMissionSet = generateDailyMissionSet(yesterday);
+      const previousMandatoryIds = pickMandatoryMissionIds(previousMissionSet, yesterday);
+      const yesterdayTasks = state.dailyTaskHistory[yesterday] || {};
+      const missedMandatoryCount = previousMandatoryIds.filter(function (missionId) {
+        return yesterdayTasks[missionId] !== yesterday;
+      }).length;
+      let penaltyXp = 0;
+      let penaltyMessage = "";
+
+      if (clears === 0) {
+        penaltyXp = 60;
+        state.streak = 0;
+        penaltyMessage = "Missed yesterday completely. -60 XP and streak reset.";
+      } else if (missedMandatoryCount === 2) {
+        penaltyXp = 45;
+        state.streak = 0;
+        penaltyMessage = "Both mandatory missions failed. -45 XP and streak reset.";
+      } else if (missedMandatoryCount === 1) {
+        penaltyXp = 25;
+        penaltyMessage = "One mandatory mission failed. -25 XP penalty.";
+      } else if (clears > 0 && clears < 2) {
+        penaltyXp = 20;
+        penaltyMessage = "Low activity yesterday. -20 XP discipline tax.";
+      }
+
+      if (penaltyXp > 0) {
+        state.xp = Math.max(0, state.xp - penaltyXp);
+        pushActivity("Penalty Applied", "-" + penaltyXp + " XP", formatShortDate(yesterday) + " review");
+        state.pendingStatus = penaltyMessage;
+      }
+
+      state.lastPenaltyCheck = today;
+    }
+
+    function applyDayRules() {
+      const today = getTodayKey();
+      const currentWeek = startOfWeekKey(new Date());
+
+      if (state.weeklyGoal.weekStart !== currentWeek) {
+        state.weeklyGoal.weekStart = currentWeek;
+        state.weeklyGoal.progress = 0;
+      }
+
+      if (state.completedToday.date !== today) {
+        state.completedToday = { date: today, tasks: {} };
+      }
+      if (!state.dailyTaskHistory[today]) {
+        state.dailyTaskHistory[today] = {};
+      }
+
+      if (!Array.isArray(state.dailyMissions) || !state.dailyMissions.length || state.dailyMissions[0].date !== today) {
+        state.dailyMissions = generateDailyMissionSet(today);
+        state.mandatoryMissionIds = pickMandatoryMissionIds(state.dailyMissions, today);
+      } else {
+        state.dailyMissions = state.dailyMissions.map(function (mission) {
+          const template = getTaskTemplateById(mission.baseId || mission.id);
+          return template ? buildMissionFromPool(template, today) : mission;
+        });
+        if (!Array.isArray(state.mandatoryMissionIds) || state.mandatoryMissionIds.length !== 2) {
+          state.mandatoryMissionIds = pickMandatoryMissionIds(state.dailyMissions, today);
+        }
+      }
+
+      if (!state.specialMission || state.specialMission.date !== today) {
+        state.specialMission = generateDailySpecialMission(today);
+      } else {
+        state.specialMission = hydrateSpecialMission(state.specialMission);
+      }
+
+      state.weeklyGoal.reward = computeWeeklyGoalReward();
+      evaluatePenaltyForPreviousDay(today);
+
+      if (state.lastCompletionDate) {
+        const lastDate = new Date(state.lastCompletionDate + "T00:00:00");
+        const todayDate = new Date(today + "T00:00:00");
+        const diffDays = Math.round((todayDate - lastDate) / 86400000);
+
+        if (diffDays > 1) {
+          state.streak = 0;
+        }
+      }
+
+      saveState();
+    }
+
+    function xpNeededForLevel(level) {
+      return Math.round(120 + Math.pow(level - 1, 1.35) * 48);
+    }
+
+    function titleForLevel(level) {
+      if (level < 4) return "E-Rank";
+      if (level < 8) return "D-Rank";
+      if (level < 13) return "C-Rank";
+      if (level < 20) return "B-Rank";
+      if (level < 28) return "A-Rank";
+      if (level < 36) return "S-Rank";
+      return "Monarch";
+    }
+
+    function getRankTheme(level) {
+      const rank = titleForLevel(level);
+      if (rank === "E-Rank") {
+        return {
+          color: "#7fd8ff",
+          glow: "rgba(86, 215, 255, 0.18)",
+          muted: "#7fc9eb"
+        };
+      }
+      if (rank === "D-Rank") {
+        return {
+          color: "#63f2b6",
+          glow: "rgba(108, 242, 190, 0.22)",
+          muted: "#7fe4bf"
+        };
+      }
+      if (rank === "C-Rank") {
+        return {
+          color: "#7f8fff",
+          glow: "rgba(125, 109, 255, 0.28)",
+          muted: "#98a5ff"
+        };
+      }
+      if (rank === "B-Rank") {
+        return {
+          color: "#ffd24f",
+          glow: "rgba(255, 211, 109, 0.34)",
+          muted: "#ffd878"
+        };
+      }
+      if (rank === "A-Rank") {
+        return {
+          color: "#ff8a3d",
+          glow: "rgba(255, 138, 61, 0.42)",
+          muted: "#ffaf73"
+        };
+      }
+      if (rank === "S-Rank") {
+        return {
+          color: "#ff5a5a",
+          glow: "rgba(255, 90, 90, 0.5)",
+          muted: "#ff9898"
+        };
+      }
+      return {
+        color: "#c9b6ff",
+        glow: "rgba(170, 130, 255, 0.58)",
+        muted: "#dccfff"
+      };
+    }
+
+    function canRenameHunter() {
+      if (!state.hunter.hasCustomName) {
+        return true;
+      }
+
+      return state.level >= 20 && !state.hunter.rankRenameUsed;
+    }
+
+    function getHunterNameButtonState() {
+      if (!state.hunter.hasCustomName) {
+        return { visible: true, label: "Set Hunter Name" };
+      }
+
+      if (state.level >= 20 && !state.hunter.rankRenameUsed) {
+        return { visible: true, label: "Change Name" };
+      }
+
+      return { visible: false, label: "Change Name" };
+    }
+
+    function subtitleForLevel(level) {
+      if (level < 4) return "Clear the first mission and awaken your system.";
+      if (level < 8) return "The routine is stabilizing. Your rank is no longer accidental.";
+      if (level < 13) return "Discipline is becoming part of your identity, not just your mood.";
+      if (level < 20) return "You are building the kind of consistency that changes outcomes.";
+      if (level < 28) return "Your system is sharp now. Protect the streak and keep ascending.";
+      if (level < 36) return "You are operating above the ordinary field now. Every action carries pressure and power.";
+      return "You built a command-level rhythm. Keep ruling the board.";
+    }
+
+    function claimTask(taskId, options) {
+      applyDayRules();
+
+      const today = getTodayKey();
+      const task =
+        options && options.special
+          ? state.specialMission
+          : state.dailyMissions.find(function (entry) {
+        return entry.id === taskId;
+      });
+
+      if (!task) {
+        return;
+      }
+
+      if (state.completedToday.tasks[taskId] === today) {
+        setStatus(task.name + " has already been cleared today.");
+        return;
+      }
+
+      const previousLevel = state.level;
+      const earnedXp = xpForDifficulty(task.difficulty, options);
+      state.completedToday.tasks[taskId] = today;
+      state.dailyTaskHistory[today][taskId] = today;
+      state.xp += earnedXp;
+
+      state.lifetimeStats[taskId] = (state.lifetimeStats[taskId] || 0) + 1;
+      state.dailyRecords[today] = Object.keys(state.completedToday.tasks).length;
+
+      const tasksDoneToday = Object.keys(state.completedToday.tasks).length;
+      state.bestDay = Math.max(state.bestDay, tasksDoneToday);
+      state.dailyRecords[today] = tasksDoneToday;
+
+      updateStreak(today);
+      updateWeeklyGoal(taskId);
+      const levelUpResult = checkLevelUps();
+      pushActivity(task.name, "+" + earnedXp + " XP", "Mission cleared on " + formatShortDate(today));
+
+      saveState();
+      render();
+      triggerMissionEffects(task.name, earnedXp, previousLevel, levelUpResult);
+      setStatus(task.name + " cleared. System growth recorded.");
+    }
+
+    function updateStreak(today) {
+      if (!state.lastCompletionDate) {
+        state.streak = 1;
+      } else if (state.lastCompletionDate === today) {
+        state.streak = Math.max(1, state.streak);
+      } else {
+        const previous = new Date(state.lastCompletionDate + "T00:00:00");
+        const current = new Date(today + "T00:00:00");
+        const diffDays = Math.round((current - previous) / 86400000);
+        state.streak = diffDays === 1 ? state.streak + 1 : 1;
+      }
+
+      state.lastCompletionDate = today;
+    }
+
+    function updateWeeklyGoal(taskId) {
+      const mission = state.dailyMissions.find(function (entry) {
+        return entry.id === taskId;
+      });
+
+      if (!mission || !Array.isArray(mission.tags) || mission.tags.indexOf(state.weeklyGoal.targetTag) === -1) {
+        return;
+      }
+
+      state.weeklyGoal.progress += 1;
+      state.weeklyGoal.reward = computeWeeklyGoalReward();
+
+      if (state.weeklyGoal.progress >= state.weeklyGoal.target) {
+        state.xp += state.weeklyGoal.reward;
+        pushActivity("Weekly raid complete", "+" + state.weeklyGoal.reward + " XP", "Raid reward claimed");
+        state.weeklyGoal.progress = 0;
+      }
+    }
+
+    function checkLevelUps() {
+      let leveledUp = false;
+      let startingLevel = state.level;
+
+      while (state.xp >= xpNeededForLevel(state.level)) {
+        state.xp -= xpNeededForLevel(state.level);
+        state.level += 1;
+        leveledUp = true;
+      }
+
+      if (leveledUp) {
+        pushActivity("Rank ascended", "Reached level " + state.level, titleForLevel(state.level));
+      }
+
+      return {
+        leveledUp: leveledUp,
+        previousLevel: startingLevel,
+        newLevel: state.level,
+        newRank: titleForLevel(state.level)
+      };
+    }
+
+    function pushActivity(title, value, detail) {
+      state.history.unshift({
+        id: Date.now() + Math.random(),
+        title: title,
+        value: value,
+        detail: detail
+      });
+      state.history = state.history.slice(0, 8);
+    }
+
+    function setStatus(message) {
+      const banner = document.getElementById("statusBanner");
+      banner.textContent = message;
+      banner.classList.remove("flash");
+      void banner.offsetWidth;
+      banner.classList.add("flash");
+    }
+
+    function render() {
+      applyDayRules();
+      const xpNeeded = xpNeededForLevel(state.level);
+      const xpPercent = Math.min(100, Math.round((state.xp / xpNeeded) * 100));
+      const weeklyPercent = Math.min(100, Math.round((state.weeklyGoal.progress / state.weeklyGoal.target) * 100));
+      const totalWorkouts = getLifetimeBodyClears();
+      const rankTheme = getRankTheme(state.level);
+      const heroCard = document.getElementById("hunterCard");
+
+      document.getElementById("heroLevel").textContent = state.level;
+      document.getElementById("heroTitle").textContent = titleForLevel(state.level);
+      document.getElementById("hunterName").textContent = state.hunter.name;
+      document.getElementById("hunterRank").textContent = titleForLevel(state.level) + " Hunter";
+      heroCard.style.setProperty("--rank-color", rankTheme.color);
+      heroCard.style.setProperty("--rank-glow", rankTheme.glow);
+      heroCard.style.setProperty("--rank-muted", rankTheme.muted);
+      const hunterButtonState = getHunterNameButtonState();
+      document.getElementById("editHunterButton").textContent = hunterButtonState.label;
+      document.getElementById("editHunterButton").style.display = hunterButtonState.visible ? "inline-flex" : "none";
+
+      document.getElementById("levelValue").textContent = state.level;
+      document.getElementById("levelTitle").textContent = titleForLevel(state.level);
+      document.getElementById("xpValue").textContent = state.xp;
+      document.getElementById("xpNote").textContent = (xpNeeded - state.xp) + " XP to next rank";
+      document.getElementById("streakValue").textContent = state.streak;
+      document.getElementById("bestDayValue").textContent = state.bestDay;
+      document.getElementById("xpFootnote").textContent = state.xp + " / " + xpNeeded + " XP toward the next rank.";
+      document.getElementById("xpProgressBar").style.width = xpPercent + "%";
+
+      document.getElementById("goalProgressText").textContent = state.weeklyGoal.progress + " / " + state.weeklyGoal.target;
+      document.getElementById("goalRewardText").textContent = "+" + state.weeklyGoal.reward + " XP";
+      document.getElementById("goalProgressBar").style.width = weeklyPercent + "%";
+      document.getElementById("weekStartValue").textContent = formatShortDate(state.weeklyGoal.weekStart);
+      document.getElementById("lifetimeWorkoutValue").textContent = totalWorkouts;
+
+      renderTasks();
+      renderActivity();
+
+      if (state.pendingStatus) {
+        setStatus(state.pendingStatus);
+        state.pendingStatus = "";
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+    }
+
+    function renderTasks() {
+      const tasksHost = document.getElementById("tasks");
+      tasksHost.innerHTML = "";
+      const today = getTodayKey();
+
+      state.dailyMissions.forEach(function (task) {
+        const doneToday = state.completedToday.tasks[task.id] === today;
+        const lifetimeTotal = state.lifetimeStats[task.id] || 0;
+        const earnedXp = xpForDifficulty(task.difficulty);
+        const difficultyMeta = getDifficultyMeta(task.difficulty);
+        const isMandatory = state.mandatoryMissionIds.indexOf(task.id) !== -1;
+        const card = document.createElement("article");
+        card.className = "task-card" + (isMandatory ? " mandatory-card" : "");
+
+        const detail = document.createElement("div");
+        const titleRow = document.createElement("div");
+        titleRow.className = "task-title";
+        titleRow.innerHTML = "<strong>" + task.name + "</strong><span class='task-rank'>" + difficultyMeta.rank + "</span>";
+
+        const infoButton = document.createElement("button");
+        infoButton.type = "button";
+        infoButton.className = "info-button";
+        infoButton.textContent = "i";
+        infoButton.setAttribute("aria-label", "Mission info");
+        infoButton.addEventListener("click", function () {
+          showMissionInfo(task, earnedXp, false);
+        });
+        titleRow.appendChild(infoButton);
+
+        const meta = document.createElement("div");
+        meta.innerHTML =
+          "<div class='task-meta'>" +
+          (isMandatory ? "<span class='pill mandatory'>Mandatory</span>" : "") +
+          "<span class='pill'>" + task.type + "</span>" +
+          "<span class='pill'>+" + earnedXp + " XP</span>" +
+          "<span class='pill'>" + difficultyMeta.label + "</span>" +
+          "<span class='pill'>" + task.cadence + "</span>" +
+          "<span class='pill " + (doneToday ? "positive" : "") + "'>" + (doneToday ? "Cleared" : "Available") + "</span>" +
+          "<span class='pill'>" + lifetimeTotal + " clears</span>" +
+          "</div>";
+        detail.appendChild(titleRow);
+        detail.appendChild(meta);
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "btn btn-primary";
+        button.textContent = doneToday ? "Cleared Today" : "Clear Mission";
+        button.disabled = doneToday;
+        button.addEventListener("click", function () {
+          claimTask(task.id);
+        });
+
+        card.appendChild(detail);
+        card.appendChild(button);
+        tasksHost.appendChild(card);
+      });
+
+      renderSpecialMission(tasksHost, today);
+    }
+
+    function renderSpecialMission(tasksHost, today) {
+      const mission = state.specialMission;
+      if (!mission) {
+        return;
+      }
+
+      const doneToday = state.completedToday.tasks[mission.id] === today;
+      const earnedXp = xpForDifficulty(mission.difficulty, { special: true });
+      const difficultyMeta = getDifficultyMeta(mission.difficulty);
+      const lifetimeTotal = state.lifetimeStats[mission.id] || 0;
+      const card = document.createElement("article");
+      card.className = "task-card special-card";
+
+      const detail = document.createElement("div");
+      const titleRow = document.createElement("div");
+      titleRow.className = "task-title";
+      titleRow.innerHTML = "<strong>Special Mission: " + mission.name + "</strong><span class='task-rank'>" + difficultyMeta.rank + "</span>";
+
+      const infoButton = document.createElement("button");
+      infoButton.type = "button";
+      infoButton.className = "info-button";
+      infoButton.textContent = "i";
+      infoButton.setAttribute("aria-label", "Mission info");
+      infoButton.addEventListener("click", function () {
+        showMissionInfo(mission, earnedXp, true);
+      });
+      titleRow.appendChild(infoButton);
+
+      const theme = document.createElement("div");
+      theme.className = "panel-copy";
+      theme.style.marginTop = "8px";
+      theme.textContent = mission.theme;
+
+      const meta = document.createElement("div");
+      meta.innerHTML =
+        "<div class='task-meta'>" +
+        "<span class='pill special'>Special</span>" +
+        "<span class='pill'>" + mission.type + "</span>" +
+        "<span class='pill'>+" + earnedXp + " XP</span>" +
+        "<span class='pill'>" + difficultyMeta.label + "</span>" +
+        "<span class='pill'>Daily Special</span>" +
+        "<span class='pill " + (doneToday ? "positive" : "") + "'>" + (doneToday ? "Cleared" : "Active Today") + "</span>" +
+        "<span class='pill'>" + lifetimeTotal + " clears</span>" +
+        "</div>";
+      detail.appendChild(titleRow);
+      detail.appendChild(theme);
+      detail.appendChild(meta);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "btn btn-primary";
+      button.textContent = doneToday ? "Special Cleared" : "Clear Special";
+      button.disabled = doneToday;
+      button.addEventListener("click", function () {
+        claimTask(mission.id, { special: true });
+      });
+
+      const actionWrap = document.createElement("div");
+      actionWrap.className = "special-actions";
+      actionWrap.appendChild(button);
+
+      card.appendChild(detail);
+      card.appendChild(actionWrap);
+      tasksHost.insertBefore(card, tasksHost.firstChild);
+    }
+
+    function renderActivity() {
+      const list = document.getElementById("activityList");
+      list.innerHTML = "";
+
+      if (!state.history.length) {
+        const empty = document.createElement("li");
+        empty.className = "activity-item";
+        empty.innerHTML = "<div class='activity-copy'><strong>No battle log yet</strong><span>Your system events will appear here as you clear missions and rank up.</span></div><div class='activity-value'>Standby</div>";
+        list.appendChild(empty);
+        return;
+      }
+
+      state.history.forEach(function (item) {
+        const row = document.createElement("li");
+        row.className = "activity-item";
+        row.innerHTML =
+          "<div class='activity-copy'><strong>" + item.title + "</strong><span>" + item.detail + "</span></div>" +
+          "<div class='activity-value'>" + item.value + "</div>";
+        list.appendChild(row);
+      });
+    }
+
+    function showMissionInfo(mission, earnedXp, isSpecial) {
+      const baseMission = isSpecial
+        ? Object.assign({}, mission, getSpecialMissionTemplateByName(mission.name) || {})
+        : Object.assign({}, getTaskTemplateById(mission.baseId || mission.id) || {}, mission);
+      const difficultyMeta = getDifficultyMeta(baseMission.difficulty);
+      const meaning = baseMission.meaning || baseMission.theme || "This mission supports your overall growth system.";
+      const objective = baseMission.objective || "Complete the mission in a way that clearly matches its intent.";
+      const details = baseMission.details || "Use your honest judgment and count it only when it was done properly.";
+      const rewardText = baseMission.rewardText || "XP is calculated from difficulty, level scaling, and your current streak.";
+      const titlePrefix = isSpecial ? "Special Mission" : "Mission Intel";
+      const detail =
+        "Meaning: " + meaning +
+        "\n\nObjective: " + objective +
+        "\n\nDetails: " + details +
+        "\n\nReward Logic: " + rewardText +
+        "\n\nDifficulty: " + difficultyMeta.label + " / " + difficultyMeta.rank +
+        "\nXP Reward Today: +" + earnedXp + " XP";
+
+      showSystemPopup({
+        kicker: titlePrefix,
+        title: baseMission.name,
+        value: baseMission.type + " / " + difficultyMeta.label,
+        detail: detail,
+        tone: "mission"
+      });
+    }
+
+    function triggerMissionEffects(taskName, earnedXp, previousLevel, levelUpResult) {
+      spawnXpBurst("+" + earnedXp + " XP", taskName + " cleared");
+
+      if (levelUpResult && levelUpResult.leveledUp) {
+        showSystemPopup({
+          kicker: "Rank Ascension",
+          title: "Level " + levelUpResult.newLevel,
+          value: levelUpResult.newRank,
+          detail: "You advanced beyond " + titleForLevel(previousLevel) + ". The system recognizes your growth.",
+          tone: "rank-up"
+        });
+        return;
+      }
+
+      showSystemPopup({
+        kicker: "Mission Clear",
+        title: taskName,
+        value: "+" + earnedXp + " XP",
+        detail: "Clear recorded. Keep chaining missions to accelerate rank growth.",
+        tone: "mission"
+      });
+    }
+
+    function showSystemPopup(config) {
+      const overlay = document.getElementById("systemOverlay");
+      const card = document.getElementById("systemCard");
+      document.getElementById("systemKicker").textContent = config.kicker;
+      document.getElementById("systemTitle").textContent = config.title;
+      document.getElementById("systemValue").textContent = config.value;
+      if (config.detailMode === "html") {
+        document.getElementById("systemDetail").innerHTML = config.detail;
+        document.getElementById("systemDetail").classList.add("html-mode");
+      } else {
+        document.getElementById("systemDetail").textContent = config.detail;
+        document.getElementById("systemDetail").classList.remove("html-mode");
+      }
+      card.classList.toggle("rank-up", config.tone === "rank-up");
+      card.classList.toggle("hunter-mode", config.tone === "hunter");
+      if (config.rankTheme) {
+        card.style.setProperty("--rank-color", config.rankTheme.color);
+        card.style.setProperty("--rank-glow", config.rankTheme.glow);
+        card.style.setProperty("--rank-muted", config.rankTheme.muted);
+      } else {
+        card.style.removeProperty("--rank-color");
+        card.style.removeProperty("--rank-glow");
+        card.style.removeProperty("--rank-muted");
+      }
+      overlay.classList.add("show");
+      overlay.setAttribute("aria-hidden", "false");
+      document.getElementById("systemClose").focus();
+    }
+
+    function hideSystemPopup() {
+      const overlay = document.getElementById("systemOverlay");
+      const card = document.getElementById("systemCard");
+      overlay.classList.remove("show");
+      overlay.setAttribute("aria-hidden", "true");
+      card.classList.remove("rank-up");
+      card.classList.remove("hunter-mode");
+      card.style.removeProperty("--rank-color");
+      card.style.removeProperty("--rank-glow");
+      card.style.removeProperty("--rank-muted");
+    }
+
+    function spawnXpBurst(title, detail) {
+      const host = document.getElementById("xpBurst");
+      const item = document.createElement("div");
+      item.className = "xp-burst-item";
+      item.innerHTML = "<strong>" + title + "</strong><span>" + detail + "</span>";
+      host.appendChild(item);
+      window.setTimeout(function () {
+        item.remove();
+      }, 1300);
+    }
+
+    function clearFeed() {
+      state.history = [];
+      saveState();
+      render();
+      setStatus("Battle log cleared. Your progress is still stored.");
+    }
+
+    function editHunterName() {
+      if (!canRenameHunter()) {
+        setStatus("Hunter name is locked. Your one rename unlock appears at B-Rank.");
+        return;
+      }
+
+      const isFirstSet = !state.hunter.hasCustomName;
+      const nextName = window.prompt("Enter your hunter name", state.hunter.name || "Hunter");
+      if (!nextName) {
+        return;
+      }
+
+      state.hunter.name = nextName.trim() || "Hunter";
+      state.hunter.hasCustomName = state.hunter.name !== "Hunter";
+      if (!isFirstSet && state.hunter.hasCustomName) {
+        state.hunter.rankRenameUsed = true;
+      }
+      saveState();
+      render();
+      setStatus("Hunter card updated for " + state.hunter.name + ".");
+    }
+
+    function openHunterCard() {
+      const xpNeeded = xpNeededForLevel(state.level);
+      const bodyClears = getLifetimeBodyClears();
+      const xpRemaining = Math.max(0, xpNeeded - state.xp);
+      const xpPercent = Math.min(100, Math.round((state.xp / xpNeeded) * 100));
+      const weeklyPercent = Math.min(100, Math.round((state.weeklyGoal.progress / state.weeklyGoal.target) * 100));
+      const rankTheme = getRankTheme(state.level);
+      const detail =
+        "<div class='hunter-sheet'>" +
+          "<div class='hunter-hero-row'>" +
+            "<div class='hunter-level-seal'>" +
+              "<div class='hunter-level-rank-label'>Rank</div>" +
+              "<div class='hunter-level-rank-value'>" + titleForLevel(state.level) + "</div>" +
+              "<div class='hunter-level-number'>" + state.level + "</div>" +
+              "<div class='hunter-level-caption'>Level</div>" +
+            "</div>" +
+            "<div class='hunter-identity'>" +
+              "<div class='hunter-badge-row'>" +
+                "<span class='hunter-badge'>" + titleForLevel(state.level) + "</span>" +
+                "<span class='hunter-badge'>" + state.hunter.city + "</span>" +
+                "<span class='hunter-badge'>" + state.hunter.shift + "</span>" +
+              "</div>" +
+              "<div class='hunter-progress'>" +
+                "<div class='hunter-progress-line'><span>XP Progress</span><span>" + state.xp + " / " + xpNeeded + " XP</span></div>" +
+                "<div class='hunter-bar'><div class='hunter-bar-fill' style='width:" + xpPercent + "%'></div></div>" +
+              "</div>" +
+              "<div class='hunter-progress'>" +
+                "<div class='hunter-progress-line'><span>Weekly Raid</span><span>" + state.weeklyGoal.progress + " / " + state.weeklyGoal.target + "</span></div>" +
+                "<div class='hunter-bar'><div class='hunter-bar-fill' style='width:" + weeklyPercent + "%'></div></div>" +
+              "</div>" +
+            "</div>" +
+          "</div>" +
+          "<div class='hunter-stat-grid'>" +
+            "<div class='hunter-stat-box'><strong>Current XP</strong><span>" + state.xp + "</span></div>" +
+            "<div class='hunter-stat-box'><strong>XP Remaining</strong><span>" + xpRemaining + "</span></div>" +
+            "<div class='hunter-stat-box'><strong>Streak Chain</strong><span>" + state.streak + "</span></div>" +
+            "<div class='hunter-stat-box'><strong>Peak Clear</strong><span>" + state.bestDay + "</span></div>" +
+            "<div class='hunter-stat-box'><strong>Body Clears</strong><span>" + bodyClears + "</span></div>" +
+            "<div class='hunter-stat-box'><strong>Today's Missions</strong><span>" + state.dailyMissions.length + "</span></div>" +
+          "</div>" +
+          "<div class='hunter-actions'>" +
+            "<button class='btn btn-secondary' id='hunterExportButton' type='button'>Export</button>" +
+            "<button class='btn btn-secondary' id='hunterImportButton' type='button'>Import</button>" +
+          "</div>" +
+        "</div>";
+
+      showSystemPopup({
+        kicker: "Hunter Card",
+        title: state.hunter.name,
+        value: titleForLevel(state.level) + " / Level " + state.level,
+        detail: detail,
+        tone: "hunter",
+        detailMode: "html",
+        rankTheme: rankTheme
+      });
+
+      const exportButton = document.getElementById("hunterExportButton");
+      const importButton = document.getElementById("hunterImportButton");
+      if (exportButton) {
+        exportButton.addEventListener("click", function (event) {
+          event.stopPropagation();
+          exportData();
+        });
+      }
+      if (importButton) {
+        importButton.addEventListener("click", function (event) {
+          event.stopPropagation();
+          document.getElementById("importFileInput").click();
+        });
+      }
+    }
+
+    function openSectionInfo(title, description) {
+      showSystemPopup({
+        kicker: "Section Info",
+        title: title,
+        value: "Interface Detail",
+        detail: description,
+        tone: "mission"
+      });
+    }
+
+    function resetAllData() {
+      localStorage.removeItem(STORAGE_KEY);
+      Object.assign(state, cloneDefaultState());
+      normalizeState(state);
+      applyDayRules();
+      render();
+      setStatus("System reset complete. Hunter level returned to 1.");
+    }
+  </script>
+</body>
+</html>
