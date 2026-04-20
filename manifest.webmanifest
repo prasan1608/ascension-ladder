@@ -2,7 +2,7 @@
   "name": "Ascension Ladder",
   "short_name": "Ascension",
   "description": "A hunter-style daily ascension system with ranks, missions, streaks, and special clears.",
-  "start_url": "./Level%20Up%20Life.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#040816",

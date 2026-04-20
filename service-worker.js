@@ -1,7 +1,7 @@
-const CACHE_NAME = "ascension-ladder-v1";
+const CACHE_NAME = "ascension-ladder-v2";
 const APP_ASSETS = [
   "./",
-  "./Level%20Up%20Life.html",
+  "./index.html",
   "./manifest.webmanifest",
   "./icon.svg",
   "./icon-apple.svg"
@@ -49,7 +49,7 @@ self.addEventListener("fetch", function (event) {
         });
         return response;
       }).catch(function () {
-        return caches.match("./Level%20Up%20Life.html");
+        return caches.match("./index.html");
       });
     })
   );
