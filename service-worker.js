@@ -4,7 +4,9 @@ const APP_ASSETS = [
   "./index.html",
   "./manifest.webmanifest",
   "./icon.svg",
-  "./icon-apple.svg"
+  "./icon-apple.svg",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
 self.addEventListener("install", function (event) {
