@@ -2340,12 +2340,12 @@
     }
 
     function titleForLevel(level) {
-      if (level < 4) return "E-Rank";
-      if (level < 8) return "D-Rank";
-      if (level < 13) return "C-Rank";
-      if (level < 20) return "B-Rank";
-      if (level < 28) return "A-Rank";
-      if (level < 36) return "S-Rank";
+      if (level < 6) return "E-Rank";
+      if (level < 11) return "D-Rank";
+      if (level < 18) return "C-Rank";
+      if (level < 27) return "B-Rank";
+      if (level < 39) return "A-Rank";
+      if (level < 56) return "S-Rank";
       return "Monarch";
     }
 
@@ -2405,7 +2405,7 @@
         return true;
       }
 
-      return state.level >= 20 && !state.hunter.rankRenameUsed;
+      return state.level >= 18 && !state.hunter.rankRenameUsed;
     }
 
     function getHunterNameButtonState() {
@@ -2413,7 +2413,7 @@
         return { visible: true, label: "Set Hunter Name" };
       }
 
-      if (state.level >= 20 && !state.hunter.rankRenameUsed) {
+      if (state.level >= 18 && !state.hunter.rankRenameUsed) {
         return { visible: true, label: "Change Name" };
       }
 
@@ -2421,12 +2421,12 @@
     }
 
     function subtitleForLevel(level) {
-      if (level < 4) return "Clear the first mission and awaken your system.";
-      if (level < 8) return "The routine is stabilizing. Your rank is no longer accidental.";
-      if (level < 13) return "Discipline is becoming part of your identity, not just your mood.";
-      if (level < 20) return "You are building the kind of consistency that changes outcomes.";
-      if (level < 28) return "Your system is sharp now. Protect the streak and keep ascending.";
-      if (level < 36) return "You are operating above the ordinary field now. Every action carries pressure and power.";
+      if (level < 6) return "Clear the first missions and awaken your system core.";
+      if (level < 11) return "The climb has begun. Your habits are starting to take rank-form.";
+      if (level < 18) return "Discipline is no longer random. Your hunter frame is stabilizing.";
+      if (level < 27) return "You are entering serious territory now. Consistency is becoming power.";
+      if (level < 39) return "Your system is sharp now. Protect the streak and keep ascending.";
+      if (level < 56) return "You are operating above the ordinary field now. Every action carries pressure and power.";
       return "You built a command-level rhythm. Keep ruling the board.";
     }
 
