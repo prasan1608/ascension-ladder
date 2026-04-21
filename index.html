@@ -1554,9 +1554,9 @@
 
           <div class="mini-grid">
             <article class="mini-card">
-              <p class="stat-label">Raid Reset</p>
+              <p class="stat-label">Next Reset</p>
               <p class="stat-value" id="weekStartValue">-</p>
-              <p class="stat-note">Automatic weekly reset</p>
+              <p class="stat-note">Automatic weekly raid reset</p>
             </article>
             <article class="mini-card">
               <p class="stat-label">Body Clears</p>
@@ -1606,6 +1606,22 @@
       elite: { label: "Elite", rank: "B-Rank", multiplier: 1.62, color: "elite" },
       boss: { label: "Boss", rank: "A-Rank", multiplier: 2.05, color: "boss" }
     };
+
+    const TRACKER_MISSION_POOL = [
+      {
+        id: "steps-sync",
+        name: "Step Count Sync",
+        cadence: "Today",
+        type: "Body",
+        difficulty: "common",
+        unit: "steps",
+        meaning: "Turn your real-world movement into a repeatable hunter gain instead of invisible effort.",
+        objective: "Log your real daily steps and convert them into a mission clear.",
+        details: "When you clear the mission, enter your total steps for the day from your phone or watch. Higher steps produce higher XP and a higher rank tier.",
+        rewardText: "Step XP scales with the amount logged. Bigger walking days give stronger mission XP.",
+        tags: ["weekly-body", "health", "tracker"]
+      }
+    ];
 
     const DAILY_MISSION_POOL = [
       {
@@ -1869,6 +1885,10 @@
       dailyTaskHistory: {},
       lastPenaltyCheck: null,
       pendingStatus: "",
+      trackerProgress: {
+        date: null,
+        values: {}
+      },
       hunter: {
         name: "Hunter",
         city: "Delhi",
@@ -1964,6 +1984,9 @@
       data.dailyTaskHistory = data.dailyTaskHistory || {};
       data.lastPenaltyCheck = data.lastPenaltyCheck || null;
       data.pendingStatus = typeof data.pendingStatus === "string" ? data.pendingStatus : "";
+      data.trackerProgress = data.trackerProgress || { date: null, values: {} };
+      data.trackerProgress.date = data.trackerProgress.date || null;
+      data.trackerProgress.values = data.trackerProgress.values || {};
       data.hunter = data.hunter || cloneDefaultState().hunter;
       data.hunter.name = data.hunter.name || "Hunter";
       data.hunter.city = data.hunter.city || "Delhi";
@@ -2057,6 +2080,10 @@
       return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     }
 
+    function nextWeekResetKey(weekStartKey) {
+      return shiftDateKey(weekStartKey, 7);
+    }
+
     function shiftDateKey(dateKey, amount) {
       const date = new Date(dateKey + "T00:00:00");
       date.setDate(date.getDate() + amount);
@@ -2105,13 +2132,53 @@
       }).map(function (task) {
         return task.baseId;
       });
+      const bodyTrackerIds = TRACKER_MISSION_POOL.filter(function (task) {
+        return Array.isArray(task.tags) && task.tags.indexOf("weekly-body") !== -1;
+      }).map(function (task) {
+        return task.id;
+      });
 
       return Object.keys(state.lifetimeStats).reduce(function (total, key) {
         const matches = bodyBaseIds.some(function (baseId) {
           return key.indexOf(baseId + "-") === 0;
         });
-        return total + (matches ? state.lifetimeStats[key] : 0);
+        const trackerMatch = bodyTrackerIds.indexOf(key) !== -1;
+        return total + (matches || trackerMatch ? state.lifetimeStats[key] : 0);
       }, 0);
+    }
+
+    function getTrackerById(id) {
+      return TRACKER_MISSION_POOL.find(function (tracker) {
+        return tracker.id === id;
+      }) || null;
+    }
+
+    function getTotalDailyMissionCount() {
+      const dailyCount = Array.isArray(state.dailyMissions) ? state.dailyMissions.length : 0;
+      const specialCount = state.specialMission ? 1 : 0;
+      const additionalCount = TRACKER_MISSION_POOL.length;
+      return dailyCount + specialCount + additionalCount;
+    }
+
+    function getStepsDifficultyKey(stepCount) {
+      const count = Math.max(0, Number(stepCount) || 0);
+      if (count >= 15000) return "boss";
+      if (count >= 11000) return "elite";
+      if (count >= 8000) return "advanced";
+      if (count >= 5000) return "standard";
+      return "common";
+    }
+
+    function xpForSteps(stepCount) {
+      const count = Math.max(0, Number(stepCount) || 0);
+      if (count <= 0) {
+        return 0;
+      }
+
+      const difficultyKey = getStepsDifficultyKey(count);
+      const baseXp = xpForDifficulty(difficultyKey);
+      const stepBonus = Math.floor(count / 1000) * 2;
+      return baseXp + stepBonus;
     }
 
     function buildMissionFromPool(template, dateKey) {
@@ -2296,6 +2363,9 @@
       if (state.completedToday.date !== today) {
         state.completedToday = { date: today, tasks: {} };
       }
+      if (state.trackerProgress.date !== today) {
+        state.trackerProgress = { date: today, values: {} };
+      }
       if (!state.dailyTaskHistory[today]) {
         state.dailyTaskHistory[today] = {};
       }
@@ -2474,6 +2544,66 @@
       setStatus(task.name + " cleared. System growth recorded.");
     }
 
+    function updateTrackerValue(trackerId, rawValue, options) {
+      const tracker = getTrackerById(trackerId);
+      if (!tracker) {
+        return;
+      }
+
+      const nextValue = Math.max(0, Math.round(Number(rawValue) || 0));
+      state.trackerProgress.values[trackerId] = nextValue;
+      saveState();
+      render();
+
+      if (!(options && options.silent)) {
+        setStatus(tracker.name + " updated to " + nextValue + " " + tracker.unit + ".");
+      }
+    }
+
+    function claimTracker(trackerId) {
+      applyDayRules();
+      const tracker = getTrackerById(trackerId);
+      if (!tracker) {
+        return;
+      }
+
+      const today = getTodayKey();
+      if (state.completedToday.tasks[trackerId] === today) {
+        setStatus(tracker.name + " has already been cleared today.");
+        return;
+      }
+
+      const currentValue = Number(window.prompt("Enter your steps for today", String(state.trackerProgress.values[trackerId] || 0)) || 0);
+      if (currentValue <= 0) {
+        setStatus("Log a valid step count before clearing " + tracker.name + ".");
+        return;
+      }
+
+      state.trackerProgress.values[trackerId] = currentValue;
+
+      const previousLevel = state.level;
+      const earnedXp = xpForSteps(currentValue);
+      state.completedToday.tasks[trackerId] = today;
+      state.dailyTaskHistory[today][trackerId] = today;
+      state.xp += earnedXp;
+      state.lifetimeStats[trackerId] = (state.lifetimeStats[trackerId] || 0) + 1;
+      state.dailyRecords[today] = Object.keys(state.completedToday.tasks).length;
+
+      const tasksDoneToday = Object.keys(state.completedToday.tasks).length;
+      state.bestDay = Math.max(state.bestDay, tasksDoneToday);
+      state.dailyRecords[today] = tasksDoneToday;
+
+      updateStreak(today);
+      updateWeeklyGoal(trackerId);
+      const levelUpResult = checkLevelUps();
+      pushActivity(tracker.name, "+" + earnedXp + " XP", currentValue + " " + tracker.unit + " logged on " + formatShortDate(today));
+
+      saveState();
+      render();
+      triggerMissionEffects(tracker.name, earnedXp, previousLevel, levelUpResult);
+      setStatus(tracker.name + " tracker cleared. System growth recorded.");
+    }
+
     function updateStreak(today) {
       if (!state.lastCompletionDate) {
         state.streak = 1;
@@ -2492,7 +2622,7 @@
     function updateWeeklyGoal(taskId) {
       const mission = state.dailyMissions.find(function (entry) {
         return entry.id === taskId;
-      });
+      }) || getTrackerById(taskId);
 
       if (!mission || !Array.isArray(mission.tags) || mission.tags.indexOf(state.weeklyGoal.targetTag) === -1) {
         return;
@@ -2580,7 +2710,7 @@
       document.getElementById("goalProgressText").textContent = state.weeklyGoal.progress + " / " + state.weeklyGoal.target;
       document.getElementById("goalRewardText").textContent = "+" + state.weeklyGoal.reward + " XP";
       document.getElementById("goalProgressBar").style.width = weeklyPercent + "%";
-      document.getElementById("weekStartValue").textContent = formatShortDate(state.weeklyGoal.weekStart);
+      document.getElementById("weekStartValue").textContent = formatShortDate(nextWeekResetKey(state.weeklyGoal.weekStart));
       document.getElementById("lifetimeWorkoutValue").textContent = totalWorkouts;
 
       renderTasks();
@@ -2651,6 +2781,63 @@
       });
 
       renderSpecialMission(tasksHost, today);
+      renderTrackerMissions(tasksHost, today);
+    }
+
+    function renderTrackerMissions(tasksHost, today) {
+      TRACKER_MISSION_POOL.forEach(function (tracker) {
+        const currentValue = Number(state.trackerProgress.values[tracker.id] || 0);
+        const doneToday = state.completedToday.tasks[tracker.id] === today;
+        const lifetimeTotal = state.lifetimeStats[tracker.id] || 0;
+        const dynamicDifficulty = getStepsDifficultyKey(currentValue);
+        const earnedXp = xpForSteps(currentValue);
+        const difficultyMeta = getDifficultyMeta(dynamicDifficulty);
+
+        const card = document.createElement("article");
+        card.className = "task-card";
+
+        const detail = document.createElement("div");
+        const titleRow = document.createElement("div");
+        titleRow.className = "task-title";
+        titleRow.innerHTML = "<strong>" + tracker.name + "</strong><span class='task-rank'>" + difficultyMeta.rank + "</span>";
+
+        const infoButton = document.createElement("button");
+        infoButton.type = "button";
+        infoButton.className = "info-button";
+        infoButton.textContent = "i";
+        infoButton.setAttribute("aria-label", "Tracker info");
+        infoButton.addEventListener("click", function () {
+          showMissionInfo(tracker, earnedXp, false);
+        });
+        titleRow.appendChild(infoButton);
+
+        const meta = document.createElement("div");
+        meta.innerHTML =
+          "<div class='task-meta'>" +
+          "<span class='pill special'>Additional Mission</span>" +
+          "<span class='pill'>" + tracker.type + "</span>" +
+          "<span class='pill'>+" + earnedXp + " XP</span>" +
+          "<span class='pill'>" + difficultyMeta.label + "</span>" +
+          "<span class='pill'>" + currentValue + " " + tracker.unit + "</span>" +
+          "<span class='pill " + (doneToday ? "positive" : "") + "'>" + (doneToday ? "Cleared" : "Available") + "</span>" +
+          "<span class='pill'>" + lifetimeTotal + " clears</span>" +
+          "</div>";
+        detail.appendChild(titleRow);
+        detail.appendChild(meta);
+
+        const claimButton = document.createElement("button");
+        claimButton.type = "button";
+        claimButton.className = "btn btn-primary";
+        claimButton.textContent = doneToday ? "Cleared Today" : "Clear Mission";
+        claimButton.disabled = doneToday;
+        claimButton.addEventListener("click", function () {
+          claimTracker(tracker.id);
+        });
+
+        card.appendChild(detail);
+        card.appendChild(claimButton);
+        tasksHost.appendChild(card);
+      });
     }
 
     function renderSpecialMission(tasksHost, today) {
@@ -2744,8 +2931,10 @@
     function showMissionInfo(mission, earnedXp, isSpecial) {
       const baseMission = isSpecial
         ? Object.assign({}, mission, getSpecialMissionTemplateByName(mission.name) || {})
-        : Object.assign({}, getTaskTemplateById(mission.baseId || mission.id) || {}, mission);
-      const difficultyMeta = getDifficultyMeta(baseMission.difficulty);
+        : Object.assign({}, getTaskTemplateById(mission.baseId || mission.id) || getTrackerById(mission.id) || {}, mission);
+      const difficultyMeta = baseMission.id === "steps-sync"
+        ? getDifficultyMeta(getStepsDifficultyKey(state.trackerProgress.values["steps-sync"] || 0))
+        : getDifficultyMeta(baseMission.difficulty);
       const meaning = baseMission.meaning || baseMission.theme || "This mission supports your overall growth system.";
       const objective = baseMission.objective || "Complete the mission in a way that clearly matches its intent.";
       const details = baseMission.details || "Use your honest judgment and count it only when it was done properly.";
@@ -2910,7 +3099,7 @@
             "<div class='hunter-stat-box'><strong>Streak Chain</strong><span>" + state.streak + "</span></div>" +
             "<div class='hunter-stat-box'><strong>Peak Clear</strong><span>" + state.bestDay + "</span></div>" +
             "<div class='hunter-stat-box'><strong>Body Clears</strong><span>" + bodyClears + "</span></div>" +
-            "<div class='hunter-stat-box'><strong>Today's Missions</strong><span>" + state.dailyMissions.length + "</span></div>" +
+            "<div class='hunter-stat-box'><strong>Today's Missions</strong><span>" + getTotalDailyMissionCount() + "</span></div>" +
           "</div>" +
           "<div class='hunter-actions'>" +
             "<button class='btn btn-secondary' id='hunterExportButton' type='button'>Export</button>" +
