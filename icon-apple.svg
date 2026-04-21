@@ -1,20 +1,46 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0a1630"/>
-      <stop offset="100%" stop-color="#1b1235"/>
+      <stop offset="0%" stop-color="#131b31"/>
+      <stop offset="58%" stop-color="#263754"/>
+      <stop offset="100%" stop-color="#181635"/>
     </linearGradient>
-    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#6be7ff"/>
-      <stop offset="100%" stop-color="#4b95ff"/>
+    <linearGradient id="outerA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#9ed9ff"/>
+      <stop offset="100%" stop-color="#6f8cff"/>
     </linearGradient>
-    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#ffe08a"/>
-      <stop offset="100%" stop-color="#ffbe4f"/>
+    <linearGradient id="innerA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7da3dc"/>
+      <stop offset="100%" stop-color="#4d69a6"/>
+    </linearGradient>
+    <linearGradient id="triangle" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#dff2ff"/>
+      <stop offset="100%" stop-color="#b5cef0"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
-  <rect x="86" y="86" width="340" height="340" rx="72" fill="none" stroke="rgba(101,228,255,0.18)" stroke-width="12"/>
-  <path d="M146 352L256 126L366 352H322L299 300H213L190 352Z" fill="none" stroke="url(#bar)" stroke-width="26" stroke-linejoin="round"/>
-  <path d="M220 260H292" stroke="url(#gold)" stroke-width="24" stroke-linecap="round"/>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <path d="M158 395L255 139C259 130 271 130 275 139L372 395"
+        fill="none"
+        stroke="url(#outerA)"
+        stroke-width="28"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <path d="M203 395L229 316C232 306 240 300 250 300H278C288 300 296 306 299 316L325 395"
+        fill="none"
+        stroke="url(#innerA)"
+        stroke-width="26"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <path d="M256 248L275 302H237Z" fill="url(#triangle)"/>
+
+  <path d="M242 96L251 80C254 74 258 72 262 72C266 72 270 74 273 80L282 96"
+        fill="none"
+        stroke="#ffd366"
+        stroke-width="12"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
 </svg>
